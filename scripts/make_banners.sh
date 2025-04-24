@@ -31,7 +31,7 @@ do
   echo "making $rootDirName banner image..."
 
   # do a rough calc to get the right amount of images
-  exampleImg="$("$thisScriptDir/scripts/find-images" "$rootDir" | head -n 1)" 
+  exampleImg="$("$thisScriptDir/find-images" "$rootDir" | head -n 1)"
   imgWidth="$(identify -format '%w' "$exampleImg")"
   imgLimit="$(echo "($targetWidth / ($imgWidth+25)) -2" | bc -l | cut -d '.' -f1)"
 
@@ -54,7 +54,7 @@ do
       break
     fi
 
-    imgPaths="$("$gitRoot/scripts/find-images" "$dir" -maxdepth 1 | shuf -n "$imgPerDir" | xargs -d '\n' -I{} echo '"'"{}[0]"'"')"
+    imgPaths="$("$thisScriptDir/find-images" "$dir" -maxdepth 1 | shuf -n "$imgPerDir" | xargs -d '\n' -I{} echo '"'"{}[0]"'"')"
     if [[ -n "$imgPaths" ]]
     then
       echo "$imgPaths" >> "$tempImgPaths"
