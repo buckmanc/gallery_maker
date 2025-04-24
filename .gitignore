@@ -1,0 +1,7 @@
+*.log
+temp\ */
+temp_*/
+*\ test/
+*_test/
+test.*
+scripts/*.png

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# echo "args received by find-images: $@" > $(tty)
+
+dirPath="$1"
+if [[ -z "$dirPath" ]] || [[ "$dirPath" == "-"* && ! -d "$dirPath" ]]
+then
+  dirPath="."
+elif [[ -n "$dirPath" && ! -d "$dirPath" ]]
+then
+  echo "directory does not exist: $dirPath" >&2
+  exit 1
+else
+  shift
+fi
+
+# stackoverflow.com/a/60559975/1995812
+find "$dirPath" "$@" -type f |
+file --mime-type -f - |
+grep -P '(video)\/' |
+grep -iPo '^.*(?=:[^:]+$)' |
+sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7
