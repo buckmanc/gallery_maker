@@ -3,6 +3,9 @@ set -e
 
 # heavily modified from github.com/jonascarpay/Wallpapers
 
+# TODO check dependencies
+
+
 # stackoverflow.com/a/296135731995812
 quoteRe() {
 	sed -e 's/[^^]/[&]/g; s/\^/\\^/g; $!a\'$'\n''\\n' <<<"$1" | tr -d '\n'
@@ -55,6 +58,14 @@ update-script() {
 		cp "$homePath" "$scriptsPath"
 	fi
 }
+
+mkdir -p "$gitRoot/.internals"
+
+# pull over internals from the gallery project
+while read -r path
+do
+	cp "$path" "$gitRoot/.internals/" --update=none
+done < <( find "$thisScriptDir/.internals" -maxdepth 1 -mindepth 1 -not -iname thumbnails )
 
 update-script "find-images"
 update-script "find-videos"

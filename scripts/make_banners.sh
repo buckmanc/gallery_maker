@@ -5,8 +5,11 @@ set -e
 gitRoot="$(git rev-parse --show-toplevel)"
 thisScriptDir="$(dirname -- "$0")"
 
+bannerDir="$gitRoot/.internals/banners"
 tempImgPaths='/tmp/wallpaper-banner-temp.txt'
 targetWidth=3000
+
+mkdir -p "$bannerDir"
 
 rootDirs="$(find "$gitRoot/.internals/thumbnails" -mindepth 1 -maxdepth 1 -type d)"
 
@@ -15,12 +18,13 @@ echo "$rootDirs" | while read -r rootDir
 do
   iDir=$((iDir+1))
   rootDirName="$(basename "$rootDir")"
-  outpath="$gitRoot/.internals/banners/banner$iDir.png"
+  outpath="$bannerDir/banner$iDir.png"
 
   if [[ -f "$tempImgPaths" ]]
   then
     rm "$tempImgPaths"
   fi
+
   # skip if exists
   # in other words, delete the banner to reshuffle it
   if [[ -f "$outpath" ]]
