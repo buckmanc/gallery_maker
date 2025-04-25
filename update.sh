@@ -3,7 +3,7 @@
 set -e
 
 gitRoot=$(git rev-parse --show-toplevel)
-modTimeScriptPath="$gitRoot/scripts/update_mod_time.sh"
+modTimeScriptPath="$gitRoot/.internals/update_mod_time.sh"
 
 git fetch --depth 1
 if [[ $(git rev-parse HEAD) == $(git rev-parse @{u}) ]]

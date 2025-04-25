@@ -31,13 +31,13 @@ If using Git, I recommend making a shallow clone of this repo to pull only the c
 
 To make a simple shallow clone:
 ```shell
-git clone --depth 1 {repo url}
+git clone --rescurse-submodules --depth 1 {repo url}
 ```
 
 Or to clone only the directories you want in a shallow fashion (for example, to ignore the {mobile size} mobile folder):
 ```shell
 # shallow clone but download and checkout bupkis
-git clone --filter=blob:none --no-checkout --depth 1 {repo url}
+git clone --filter=blob:none --no-checkout --recurse-submodules --shallow-submodules --depth 1 {repo url}
 
 # set git to only clone these folders
 git sparse-checkout set ./desktop ./terminal ./scripts
@@ -60,6 +60,7 @@ I've added attribution where I can. Feel free to contact me or submit a pull req
 - **Lockscreen: exciting**
   - Anything goes
   - Better with a neat and tidy lock screen
+    - Samsung Galaxy users can use [LockStar](https://galaxystore.samsung.com/detail/com.samsung.systemui.lockstar) to keep things clean
 - **Floaters**
   - To be centered on the screen
   - Usually t-shirt designs

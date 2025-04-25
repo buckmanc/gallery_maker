@@ -14,7 +14,7 @@ then
 fi
 
 gitRoot=$(git rev-parse --show-toplevel)
-outPath="$gitRoot/scripts/update_mod_time.sh"
+outPath="$gitRoot/.internals/update_mod_time.sh"
 if [[ -f "$outPath" ]]
 then
 	currentText="$(cat "$outPath")"
@@ -48,11 +48,11 @@ do
 		continue
 	fi
 
-	# skip anything that isn't an image
+	# skip anything that isn't an image or video
 	mimeType="$(file --mime-type --brief -- "$src" | cut -d '/' -f1)"
 	mimeType="${mimeType,,}"
 	fileExt="${src##*.,,}"
-	if [[ "$mimeType" != "image" && "$fileExt" != "md" ]]
+	if [[ "$mimeType" != "image" && "$mimeType" != "video" && "$fileExt" != "md" && "$fileExt" != "html" ]]
 	then
 		continue
 	fi
