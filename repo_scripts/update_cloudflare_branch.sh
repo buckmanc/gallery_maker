@@ -3,6 +3,7 @@
 set -e
 
 gitRoot="$(git rev-parse --show-toplevel)"
+thisScriptDir="$(dirname -- "$0")"
 shortRemoteName="$(git remote -v | grep -iP '(github|origin)' | grep -iPo '[^/:]+/[^/]+(?= )' | perl -pe 's/\.git$//g' | head -n1)"
 raw_root="https://raw.githubusercontent.com/$shortRemoteName/main"
 
@@ -10,10 +11,12 @@ raw_root="https://raw.githubusercontent.com/$shortRemoteName/main"
 # (25MB and 20k files)
 # by linking to the main files hosted on github
 
-# TODO
-# if there are dirty edits
-# if interactive, warn and confirm
-# if not interactive, throw an error
+gitStat="$(git status --porcelain)"
+if [[ -n "$gitStat" ]]
+then
+  echo "repo is not clean!"
+  exit 1
+fi
 
 # switch to cloudflare branch as necessary
 git switch cloudflare_page || git switch -c cloudflare_page
@@ -26,12 +29,31 @@ conflictedFileCount="$(git ls-files --unmerged | wc -l)"
 if [[ "$conflictedFileCount" -gt 0 ]]
 then
   # burn any merge conflicts that make it through
-  git ls-files --unmerged | xargs --no-run-if-empty -d '\n' git rm
+  while read -r path
+  do
+	ext="${path##*.}"
+	ext="${ext,,}"
+
+	# if it's a known movie or image type, burn it
+	if [[ "$ext" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob)$ ]]
+	then
+      git rm "$path"
+	# otherwise, limit thumbnail types
+	elif [[ "$ext" =~ ^(jpe?g|png|gif)$ ]]
+	then
+      git rm "$path"
+    # otherwise add it and let it (possibly) fall subject to below alterations
+    else
+      git add "$path"
+	fi
+
+  done < <( git ls-files --unmerged )
+
   git commit -m "auto resolve merge conflict"
 fi
 
 # delete all images and video from main directory
-"$gitRoot/scripts/find-images-or-videos" "$gitRoot" -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
+"$thisScriptDir/find-images-or-videos" "$gitRoot" -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
 # delete all markdown files?
 find "$gitRoot" -type f -iname '*.md' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
 

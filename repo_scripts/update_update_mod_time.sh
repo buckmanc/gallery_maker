@@ -13,6 +13,16 @@ then
 	optCommit=1
 fi
 
+gitStat="$(git status --porcelain)"
+if [[ -n "$gitStat" ]]
+then
+  echo "repo is not clean!"
+  exit 1
+fi
+
+git switch main
+git pull
+
 gitRoot=$(git rev-parse --show-toplevel)
 outPath="$gitRoot/.internals/update_mod_time.sh"
 if [[ -f "$outPath" ]]
