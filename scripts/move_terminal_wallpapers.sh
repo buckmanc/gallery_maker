@@ -109,9 +109,8 @@ do
 	xmv castlevania_glyph_agartha_by_pyderek.png
 
 	dest="little/cosmere"
-	xmv cosmere_ghostbloods.png
-	xmv cosmere.png
-	xmv mistborn_atium.png
+	xmv cosmere*
+	xmv mistborn*
 	xmv stormlight_glyph_kholin.png
 	xmv stormlight_glyph_roshar.png
 	xmv stormlight_glyph_thath_justice.png
