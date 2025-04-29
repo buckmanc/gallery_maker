@@ -2,18 +2,18 @@
 make sure you're editing the template, doofus
 -->
 
-![desktop wallpapers](.internals/banners/banner1.png)
+![banner1](.internals/banners/banner1.png)
 
 # {total} {repo name cap}
 
 A simple repo to house my {repo name} for ease of use and automation.
 
-![mobile wallpapers](.internals/banners/banner2.png)
+![banner2](.internals/banners/banner2.png)
 
 # Table of Contents
 {table of contents}
 
-![floaters wallpapers](.internals/banners/banner3.png)
+![banner3](.internals/banners/banner3.png)
 
 # Usage
 
@@ -47,7 +47,7 @@ git checkout main
 
 ```
 
-![terminal wallpapers](.internals/banners/banner4.png)
+![banner4](.internals/banners/banner4.png)
 
 # Attribution
 
