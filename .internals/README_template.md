@@ -40,7 +40,7 @@ Or to clone only the directories you want in a shallow fashion (for example, to 
 git clone --filter=blob:none --no-checkout --recurse-submodules --shallow-submodules --depth 1 {repo url}
 
 # set git to only clone these folders
-git sparse-checkout set ./desktop ./terminal ./scripts
+git sparse-checkout set ./desktop ./terminal ./gallery_maker
 
 # download and checkout
 git checkout main

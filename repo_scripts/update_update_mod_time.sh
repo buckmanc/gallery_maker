@@ -13,7 +13,7 @@ then
 	optCommit=1
 fi
 
-gitStat="$(git status --porcelain)"
+gitStat="$(git status --porcelain --ignore-submodules)"
 if [[ -n "$gitStat" ]]
 then
   echo "repo is not clean!"
@@ -78,6 +78,8 @@ then
 	echo "$outText" > "$outPath"
 	if [[ "$optCommit" == 1 ]]
 	then
+		git add "$outPath"
 		git commit -m "update mod time script" "$outPath"
+		git push origin main
 	fi
 fi

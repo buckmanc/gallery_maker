@@ -35,7 +35,7 @@ mkdir -p "$destDir"
 cd "$destDir"
 
 gitRoot="$(git rev-parse --show-toplevel)"
-files="$("$gitRoot/scripts/find-images" "$sourceDir" -not -type l)"
+files="$("$gitRoot/gallery_maker/scripts/find-images" "$sourceDir" -not -type l)"
 total="$(echo "$files" | wc -l)"
 i=0
 
