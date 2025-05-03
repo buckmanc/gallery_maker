@@ -16,6 +16,11 @@ rootDirs="$(find "$gitRoot/.internals/thumbnails" -mindepth 1 -maxdepth 1 -type 
 iDir=0
 echo "$rootDirs" | while read -r rootDir
 do
+  if [[ -z "$rootDir" ]]
+  then
+    continue
+  fi
+
   iDir=$((iDir+1))
   rootDirName="$(basename "$rootDir")"
   outpath="$bannerDir/banner$iDir.png"

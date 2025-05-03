@@ -42,6 +42,7 @@ readmeTemplateDefaultPath="$thisScriptDir/.internals/README_template.md"
 fileListDir="$gitRoot/.internals/filelist"
 fileListFile="$fileListDir/${branchName}.log"
 fileListFileMain="$fileListDir/main.log"
+cacheDir="$HOME/.cache/gallery_maker"
 
 headerDirNameRegex='s/^(\d{2}|[zZ][xyzXYZ])[ \-_]{1,3}//g'
 subDirIdRegex='s/[ \-_"#]+/-/g'
@@ -65,21 +66,38 @@ mkdir -p "$gitRoot/.internals"
 while read -r path
 do
 	cp "$path" "$gitRoot/.internals/" --update=none
-done < <( find "$thisScriptDir/.internals" -maxdepth 1 -mindepth 1 -not -iname thumbnails )
+done < <( find "$thisScriptDir/.internals" -maxdepth 1 -mindepth 1 -type f -not -iname 'update_mod_time.sh')
 
 update-script "find-images"
 update-script "find-videos"
 update-script "find-images-or-videos"
 update-script "wallpaper-magick"
 
+if [[ "$gitRoot" -ef "$thisScriptDir" ]]
+then
+	excludeGalleryMaker=( )
+else
+	excludeGalleryMaker=( -not -ipath '*/gallery_maker' -not -ipath '*/gallery_maker/*' )
+fi
+
+find-images-including-thumbnails() {
+	imgAndVids="$("$thisScriptDir/scripts/find-images-or-videos" "$@"	-not -path '*/scripts/*' -not -path '*/repo_scripts/*' -not -type l -not -path '*/temp *' "${excludeGalleryMaker[@]}")"
+	links="$(find "$@" -iname '*.link'									-not -path '*/scripts/*' -not -path '*/repo_scripts/*' -not -type l -not -path '*/temp *' "${excludeGalleryMaker[@]}")"
+
+	# deliberately sorting links to the bottom here
+	# for the sake of link thumbnails depending on the source thumbnail
+	if [[ -n "$imgAndVids" && -n "$links" ]]
+	then
+		echo -n "$imgAndVids"$'\n'"$links"
+	else
+		echo -n "$imgAndVids""$links"
+	fi
+}
 find-images() {
-	"$thisScriptDir/scripts/find-images-or-videos" "$@" -not -path '*/thumbnails*' -not -path '*/scripts/*' -not -type l -not -path '*/temp *'
+	find-images-including-thumbnails "$@" -not -path '*/thumbnails*' -not -path '*/.*'
 }
 find-images-main() {
-	find-images "$gitRoot" -mindepth 3 -not -path '*/.*'
-}
-find-images-including-thumbnails() {
-	"$thisScriptDir/scripts/find-images-or-videos" "$@" -not -path '*/scripts/*' -not -type l -not -path '*/temp *'
+	find-images "$gitRoot" -mindepth 2 "${excludeGalleryMaker[@]}"
 }
 find-mod-time() {
 	find "$1" -type f -printf "%T+\n" | sort -nr | head -n 1
@@ -113,19 +131,35 @@ getModEpoch() {
 getThumbnailPath() {
 	path="$1"
 	optOld=0
+	optLink=0
 	if [[ "$2" == "--old" ]]
 	then
 		optOld=1
 	fi
 
-	ext="${path##*.}"
+	targetBase="$path"
+
+	# if this is a link file, remove ".link" and expect the extension for the linked file behind it
+	if [[ "$targetBase" =~ \.link$ ]]
+	then
+		optLink=1
+		targetBase="$(echo "$targetBase" | perl -pe 's/\.link$//g')"
+	fi
+
+	ext="${targetBase##*.}"
 	ext="${ext,,}"
+	targetBase="${targetBase%.*}"
+
+	if [[ "$optLink" == 1 ]]
+	then
+		targetBase="${targetBase}_link"
+	fi
 
 	if [[ "$optOld" == 0 ]]
 	then
-		target="${thumbnails_dir}/${path#"$gitRoot/"}"
+		targetBase="${thumbnails_dir}/${targetBase#"$gitRoot/"}"
 	else
-		target="${thumbnails_old_dir}/${path#"$gitRoot/"}"
+		targetBase="${thumbnails_old_dir}/${targetBase#"$gitRoot/"}"
 	fi
 
 	newExt=''
@@ -133,14 +167,16 @@ getThumbnailPath() {
 	# if it's a known movie type, make a gif thumbnail
 	if [[ "$ext" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob) ]]
 	then
-		target="$(echo "$target" | perl -pe 's/\.[^\.]+?$/.gif/g')"
+		newExt="gif"
 	# otherwise, limit thumbnail types
 	elif ! [[ "$ext" =~ ^(jpe?g|png|gif) ]]
 	then
-		target="$(echo "$target" | perl -pe 's/\.[^\.]+?$/.png/g')"
+		newExt="png"
+	else
+		newExt="$ext"
 	fi
 
-	echo "$target"
+	echo "${targetBase}.$newExt"
 }
 
 fitDir="$gitRoot/.internals/wallpapers_to_fit"
@@ -233,6 +269,13 @@ then
 	echo "$imgFiles" | while read -r path
 	do
 		filename="$(basename -- "$path")"
+		ext="${filename##*.}"
+		ext="${ext,,}"
+		if [[ "$ext" == "link" ]]
+		then
+			continue
+		fi
+
 		shortPath="${path/#"$gitRoot"/}"
 		# only use perceptual hash filenames for specific folders
 		# only misc folders at one level deep
@@ -250,7 +293,7 @@ then
 fi
 
 echo -n "--checking for webp's / bmp's to convert..."
-webpFiles="$(find "$gitRoot" -type f -iname '*.webp' -not -ipath '*/.internals/thumbnails/*')"
+webpFiles="$(find "$gitRoot" -type f -iname '*.webp' -not -ipath '*/.internals/thumbnails/*' "${excludeGalleryMaker[@]}")"
 echo "$webpFiles" | while read -r path
 do
 	if [[ -z "$path" ]]
@@ -267,7 +310,7 @@ done
 echo "done!"
 
 echo -n "--checking for unhappy filenames..."
-unhappyFiles="$(find-images-including-thumbnails -iregex '.*/[_-]+.*')"
+unhappyFiles="$(find-images-including-thumbnails "$gitRoot" -iregex '.*/[_-]+.*')"
 echo "$unhappyFiles" | while read -r path
 do
 	if [[ -z "$path" ]]
@@ -310,21 +353,54 @@ mkdir -p "$thumbnails_dir"
 
 
 imgFilesAll="$(find-images-main)"
+# .link files are sorted last
+# to assure that the destination thumbnail already exists
+
 i=0
-totalImages=$(echo "$imgFilesAll" | wc -l)
+totalImages=$(echo -n "$imgFilesAll" | wc -l)
 
 echo "$imgFilesAll" | while read -r src; do
+
+	if [[ -z "$src" ]]
+	then
+		continue
+	fi
+
 	((i++)) || true
 	filename="$(basename -- "$src")"
 	printf '\033[2K%4d/%d: %s...' "$i" "$totalImages" "$filename" | cut -c "-$COLUMNS" | tr -d $'\n'
 
+	srcExt="${src##*.}"
+	srcExt="${srcExt,,}"
 	target="$(getThumbnailPath "$src")"
 	thumbnail_old="$(getThumbnailPath "$src" --old)"
 
 	target_dir="$(dirname -- "$target")"
 	mkdir -p "$target_dir"
 
-	if [[ ! -f "$thumbnail_old" ]]; then
+	if [[ -f "$thumbnail_old" ]]; then
+		mv "$thumbnail_old" "$target"
+		echo -en "\r"
+	elif [[ "$srcExt" == "link" ]]
+	then
+		thumbnailUnderlying="$(echo "$target" | perl -pe 's/_link(?=\.\w{3,4}$)//g')"
+		url="$(cat "$src")"
+		domain="$(echo "$url" | grep -iPo '^https?://[^/]+')"
+		faviconUrl="$domain/favicon.ico"
+		faviconPath="$cacheDir/$(echo "$domain" | perl -pe 's|[:/\.]||g').ico"
+
+		if [[ ! -f "$faviconPath" ]]
+		then
+			mkdir -p "$cacheDir"
+			curl -L "$faviconUrl" -o "$faviconPath"
+		fi
+
+
+		# slap the symbol on top of the underlying thumbnail
+		convert "$thumbnailUnderlying" "$faviconPath" -trim -gravity southeast -geometry "+8+8" -composite "$target"
+
+	# make a new, regular thumbnail
+	else
 		if [[ "$src" == *"/mobile/"* ]]; then
 			targetWidth=97
 			aspectRatio="9/20"
@@ -355,23 +431,35 @@ echo "$imgFilesAll" | while read -r src; do
 			bgColor="black"
 		fi
 
+		# TODO if fitting a portrait image into a landscape thumbnail
+		# center the image on the line between 1/3 and 2/3
+
+		# TODO if this is a known video or gif format
+		# get frame count with ffmpeg
+		# /2
+		# frame var = frame count / 2 to framecount / 2 plus 30
+		# else... nopers? [0-30]?
+		# ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 "$src"
+		# will produce far better video thumbnails
+
 		# resize images, then crop to the desired resolution
 		# write a filler image on failure
-	convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions" -layers optimize +repage "$src"[0-30] "$target" \
+		convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions" -layers optimize +repage "$src"[0-30] "$target" \
 		|| convert -background transparent -fill white -size "$targetDimensions" -gravity center -stroke black -strokewidth "4" caption:"?" "$target"
 
 		echo    "${src#"$gitRoot"}~$(date +%s)" >> "$fileListFile"
 
 		echo ""
-	else
-		mv "$thumbnail_old" "$target"
-		echo -en "\r"
 	fi
 done
 
 rm -rf "$thumbnails_old_dir"
-# sort the file list to contain only the most recent entry per file
-cat "$fileListFile" | sort -t~ -k1,2r | sort -t~ -k1,1 -u | sponge "$fileListFile"
+
+if [[ -f "$fileListFile" ]]
+then
+	# sort the file list to contain only the most recent entry per file
+	cat "$fileListFile" | sort -t~ -k1,2r | sort -t~ -k1,1 -u | sponge "$fileListFile"
+fi
 
 echo ""
 
@@ -381,13 +469,20 @@ homeReadmePath="${gitRoot}/README.MD"
 rootReadmePath="${gitRoot}/README_ALL.MD"
 
 # min depth > 0 disables the generation of readme_all / rootReadmePath
-directories="$(find "$gitRoot" -mindepth 1 -type d -not -path '*/.*' -not -path '*/scripts' -not -path '*/temp *' -not -path '*/thumbnails_test')"
+directories="$(find "$gitRoot" -mindepth 1 -type d -not -path '*/.*' -not -path '*/scripts' -not -ipath '*/repo_scripts' -not -path '*/temp *' -not -path '*/thumbnails_test' "${excludeGalleryMaker[@]}")"
 totalDirs="$(echo "$directories" | wc -l)"
 i=0
 iDir=0
 iMdUnchanged=0
 iMdSkip=0
+
 while read -r dir; do
+
+	if [[ -z "$dir" ]]
+	then
+		continue
+	fi
+
 	((iDir++)) || true
 	printf -v dirStatus '\033[2K%3d/%d:' "$iDir" "$totalDirs"
 	friendlyDirName="${dir/"$gitRoot"}"
@@ -423,7 +518,10 @@ while read -r dir; do
 
 	bottomLevelDir="$(bottom-level-dir "$dir")"
 
-	imgFiles="$(find-images "$dir" -not -path '*/.*' -not -path '*/scripts')"
+	# TODO custom sort imgFiles
+	# use a sort key to handle dates
+	#	like, for example, remove '(?<=\d)[\-_ ](?=\d)'
+	imgFiles="$(find-images "$dir")"
 	i=0
 	totalDirImages=$(echo "$imgFiles" | wc -l)
 
@@ -478,6 +576,8 @@ while read -r dir; do
 			printf '%s%4d/%d: %s...' "$dirStatus" "$i" "$totalDirImages" "$friendlyDirName" | cut -c "-$COLUMNS" | tr -d $'\n'
 
 			imgDir="$(dirname "$imgPath")"
+			imgExt="${imgPath##*.}"
+			imgExt="${imgExt,,}"
 
 			attrib=''
 			dirAttribPath="$imgDir/attrib.md"
@@ -501,9 +601,19 @@ while read -r dir; do
 			thumbnailPath="$(getThumbnailPath "$imgPath")"
 			thumbnailUrl="${thumbnailPath/#"$gitRoot"/}"
 			thumbnailUrl="${thumbnailUrl// /%20}"
-			imageUrl="${imgPath/#"$gitRoot"/}"
-			imageUrl="${imageUrl// /%20}"
-			imageUrlRawRoot="$raw_root$imageUrl"
+
+			# if this is a link, use the url from the file itself
+			if [[ "$imgExt" == "link" ]]
+			then
+				imageUrl="$(cat "$imgPath")"
+				imageUrl="${imageUrl// /%20}"
+				imageUrlRawRoot="$raw_root$imageUrl"
+			# otherwise use the url of the file
+			else
+				imageUrl="${imgPath/#"$gitRoot"/}"
+				imageUrl="${imageUrl// /%20}"
+				imageUrlRawRoot="$raw_root$imageUrl"
+			fi
 
 			subDirReadmeUrl="$subDir/README.MD"
 			subDirReadmeUrl="${subDirReadmeUrl#"$gitRoot"}"
@@ -535,6 +645,8 @@ while read -r dir; do
 			# TODO support dirs with images at depth 1 *and* sub dirs
 			if [[ "$bottomLevelDir" == 1 ]]
 			then
+
+				# TODO handle .link files differently
 
 				mdText+="[![$alt_text]($imageUrl \"$alt_text\")]($imageUrlRawRoot)"
 
@@ -693,7 +805,7 @@ indexHtmlPath="${gitRoot}/index.html"
 if type pandoc >/dev/null 2>&1
 then
 	echo "--updating readme html's..."
-	mdFiles=$(find "$gitRoot" -type f -iname '*.md' -not -path '*/.*' -not -iname 'attrib.md' | sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7)
+	mdFiles=$(find "$gitRoot" -type f -iname '*.md' -not -path '*/.*' -not -iname 'attrib.md' "${excludeGalleryMaker[@]}" | sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7)
 
 	i=0
 	iHtmlSkip=0
@@ -769,12 +881,18 @@ fi
 
 # TODO exclude files already added
 lfsFiles="$(git -C "$gitRoot" lfs ls-files)"
-largeFiles="$("$thisScriptDir/scripts/find-images-or-videos" "$gitRoot" -not -ipath '*/.*' -size +100M | wc -l)"
+largeFiles="$(find-images "$gitRoot" -size +100M  -size -2G | wc -l)"
+tooLargeFiles="$(find-images "$gitRoot" -size +2G | wc -l)"
 
 if [[ "$largeFiles" -gt 0 ]]
 then
 	echo
-	echo "$largeFiles are larger than Guthib's size limit. Add them to lfs with scripts/lfs_add.sh"
+	echo "$largeFiles files are larger than Guthib's size limit. Add them to lfs with scripts/lfs_add.sh. Consider additionally uploading elsewhere and linking"
+fi
+if [[ "$tooLargeFiles" -gt 0 ]]
+then
+	echo
+	echo "$tooLargeFiles files are larger than Guthib LFS's size limit. Consider compressing them coz damn"
 fi
 
 echo
