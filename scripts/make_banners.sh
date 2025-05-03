@@ -11,7 +11,7 @@ targetWidth=3000
 
 mkdir -p "$bannerDir"
 
-rootDirs="$(find "$gitRoot/.internals/thumbnails" -mindepth 1 -maxdepth 1 -type d)"
+rootDirs="$(find "$gitRoot/.internals/thumbnails" -mindepth 1 -maxdepth 1 -type d | sort)"
 
 iDir=0
 echo "$rootDirs" | while read -r rootDir

@@ -849,6 +849,8 @@ then
 			cssPath="$cssPathTinyImages"
 		fi
 
+		metaTitle="$(echo "$metaTitle" | perl -pe 's/_/ /g')"
+
 		htmlText=$(pandoc --from=gfm --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" "$src")
 		htmlText="${htmlText//.md/.html}"
 		htmlText="${htmlText//.MD/.html}"
