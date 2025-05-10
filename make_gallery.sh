@@ -434,30 +434,31 @@ echo "$imgFilesAll" | while read -r src; do
 		# TODO if fitting a portrait image into a landscape thumbnail
 		# center the image on the line between 1/3 and 2/3
 
-		# TODO if this is a known video or gif format
-		# get frame count with ffmpeg
-		# /2
-		# frame var = frame count / 2 to framecount / 2 plus 30
-		# else... nopers? [0-30]?
-		# ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 "$src"
-		# will produce far better video thumbnails
-		
 		thumbSource=''
 		# if it's a known movie type, make a temp chunk out of the middle
 		# instead of doing a thumbnail from the beginning
 		if [[ "$srcExt" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob|gif) ]]
 		then
-			seconds="$(ffprobe -i "$src" -loglevel error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1)"
+			start=0
+			fin=0
+			seconds="$(ffprobe -i "$src" -loglevel error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 | perl -pe 's/\..+?$//g')"
 			start=$((seconds/3))
 			fin=$((start+2))
+
+			# echo -n "start time: $start"
+
 			if [[ "$start" -gt 0 ]]
 			then
 				thumbSource="/tmp/wallthumb.$srcExt"
-				ffmpeg -nostdin -loglevel error -ss "$start" -to "$fin" -i "$src" -c:v copy -c:a copy "$thumbSource"
+				if [[ -f "$thumbSource" ]]
+				then
+					rm -f "$thumbSource"
+				fi
+				ffmpeg -y -nostdin -loglevel error -ss "$start" -to "$fin" -i "$src" -c:v copy -c:a copy "$thumbSource"
 			fi
 		fi
 
-		if [[ -z "$thumbSource" ]]
+		if [[ -z "$thumbSource" || ! -f "$thumbSource" ]]
 		then
 			thumbSource="$src"
 		fi
