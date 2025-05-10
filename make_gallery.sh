@@ -441,10 +441,30 @@ echo "$imgFilesAll" | while read -r src; do
 		# else... nopers? [0-30]?
 		# ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 "$src"
 		# will produce far better video thumbnails
+		
+		thumbSource=''
+		# if it's a known movie type, make a temp chunk out of the middle
+		# instead of doing a thumbnail from the beginning
+		if [[ "$srcExt" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob|gif) ]]
+		then
+			seconds="$(ffprobe -i "$src" -loglevel error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1)"
+			start=$((seconds/3))
+			fin=$((start+2))
+			if [[ "$start" -gt 0 ]]
+			then
+				thumbSource="/tmp/wallthumb.$srcExt"
+				ffmpeg -nostdin -loglevel error -ss "$start" -to "$fin" -i "$src" -c:v copy -c:a copy "$thumbSource"
+			fi
+		fi
+
+		if [[ -z "$thumbSource" ]]
+		then
+			thumbSource="$src"
+		fi
 
 		# resize images, then crop to the desired resolution
 		# write a filler image on failure
-		convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions" -layers optimize +repage "$src"[0-30] "$target" \
+		convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions" -layers optimize +repage "$thumbSource"[0-30] "$target" \
 		|| convert -background transparent -fill white -size "$targetDimensions" -gravity center -stroke black -strokewidth "4" caption:"?" "$target"
 
 		echo    "${src#"$gitRoot"}~$(date +%s)" >> "$fileListFile"
@@ -486,7 +506,7 @@ while read -r dir; do
 	((iDir++)) || true
 	printf -v dirStatus '\033[2K%3d/%d:' "$iDir" "$totalDirs"
 	friendlyDirName="${dir/"$gitRoot"}"
-	thumbDir="$gitRoot/.internals/thumbnails/$friendlyDirName"
+	# thumbDir="$gitRoot/.internals/thumbnails/$friendlyDirName"
 
 	dirReadmePath="$dir/README.MD"
 	dirHtmlReadmePath="$dir/README.html"
