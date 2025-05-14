@@ -58,7 +58,11 @@ do
   while read -r dir
   do
     ((i++)) || true
-    if [[ "$i" -gt "$imgLimit" ]]
+
+    if [[ -z "$dir" ]]
+    then
+      continue
+    elif [[ "$i" -gt "$imgLimit" ]]
     then
       break
     fi
@@ -70,20 +74,20 @@ do
     fi
   done < <( echo "$dirs" )
 
-
-  # not clear on all parts of this
-  cat "$tempImgPaths" | shuf -n "$imgLimit" | montage -size 50x1 null: @- null: \
-	  -auto-orient  -thumbnail "500x500>^" \
-	  -bordercolor Lavender -background black +polaroid \
-	  -gravity center -background none \
-	  -background none \
-	  -geometry -20+2  -tile x1 \
-	  "$outpath"
-
-  convert "$outpath" -resize "x500>^" "$outpath"
-
   if [[ -f "$tempImgPaths" ]]
   then
+
+    # not clear on all parts of this
+    cat "$tempImgPaths" | shuf -n "$imgLimit" | montage -size 50x1 null: @- null: \
+	    -auto-orient  -thumbnail "500x500>^" \
+	    -bordercolor Lavender -background black +polaroid \
+	    -gravity center -background none \
+	    -background none \
+	    -geometry -20+2  -tile x1 \
+	    "$outpath"
+
+    convert "$outpath" -resize "x500>^" "$outpath"
+
     rm "$tempImgPaths"
   fi
 
