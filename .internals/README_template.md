@@ -6,18 +6,28 @@ make sure you're editing the template, doofus
 
 # {total} {repo name cap}
 
-A simple repo to house my {repo name} for ease of use and automation.
+A collection of bash scripts (mainly just one though) for creating git-based image galleries that work on Github, Cloudflare Pages, and your own server.
 
 ![banner2](.internals/banners/banner2.png)
 
-# Table of Contents
-{table of contents}
+# Shouldn't this be a proper CLI app written in Python or something?
+
+Yes.
+
+# This is a misuse of git! Git isn't good at binary files!
+
+Also correct.
 
 ![banner3](.internals/banners/banner3.png)
 
-# Usage
+# Example Gallery
+{table of contents}
 
-## Nab Individual {repo name cap}
+![banner4](.internals/banners/banner4.png)
+
+# Nabbing Files Usage
+
+## Nab Individual Images
 
 Long press / right click > save link. Just don't save the thumbnail by mistake!
 
@@ -46,28 +56,4 @@ git sparse-checkout set ./desktop ./terminal ./gallery_maker
 git checkout main
 
 ```
-
-![banner4](.internals/banners/banner4.png)
-
-# Attribution
-
-I've added attribution where I can. Feel free to contact me or submit a pull request to add missing attribution.
-
-# Aesthetic Decisions
-
-- **Desktop/homescreen: chill**
-  - Calming, spacious designs to underly busy windows and icons
-- **Lockscreen: exciting**
-  - Anything goes
-  - Better with a neat and tidy lock screen
-    - Samsung Galaxy users can use [LockStar](https://galaxystore.samsung.com/detail/com.samsung.systemui.lockstar) to keep things clean
-- **Floaters**
-  - To be centered on the screen
-  - Usually t-shirt designs
-- **Terminal: elegant and subdued**
-  - Extremely simple, standardized designs on the opposite side from the text
-
-# Shoutouts
-
-Thanks to [jonascarpay](https://github.com/jonascarpay/wallpapers), [makccr](https://github.com/makccr/wallpapers), and [dharmx](https://github.com/dharmx/walls) for excellent examples of wallpaper repos, all the artists of various kinds for their work, and you as Mega Man X!
 

@@ -38,7 +38,7 @@ cssPathTinyImages="/.internals/tinyimages.css"
 thumbnails_dir="$gitRoot/.internals/thumbnails"
 thumbnails_old_dir="$gitRoot/.internals/thumbnails_old"
 readmeTemplatePath="$gitRoot/.internals/README_template.md"
-readmeTemplateDefaultPath="$thisScriptDir/.internals/README_template.md"
+readmeTemplateDefaultPath="$thisScriptDir/.internals/README_template_default.md"
 fileListDir="$gitRoot/.internals/filelist"
 fileListFile="$fileListDir/${branchName}.log"
 fileListFileMain="$fileListDir/main.log"
@@ -66,7 +66,7 @@ mkdir -p "$gitRoot/.internals"
 while read -r path
 do
 	cp "$path" "$gitRoot/.internals/" --update=none
-done < <( find "$thisScriptDir/.internals" -maxdepth 1 -mindepth 1 -type f -not -iname 'update_mod_time.sh')
+done < <( find "$thisScriptDir/.internals" -maxdepth 1 -mindepth 1 -type f -not -iname 'update_mod_time.sh' -not -iname 'readme_template_default.md')
 
 update-script "find-images"
 update-script "find-videos"

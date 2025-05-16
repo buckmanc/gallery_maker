@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Gallery maker</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="/.internals/bigimages.css" />
+</head>
+<body>
+
+<!--
+make sure you're editing the template, doofus
+-->
+
+<p><img src=".internals/banners/banner1.png" alt="banner1" /></p>
+<h1 id="2-gallery_maker">2 Gallery_maker</h1>
+<p>A collection of bash scripts (mainly just one though) for creating
+git-based image galleries that work on Github, Cloudflare Pages, and
+your own server.</p>
+<p><img src=".internals/banners/banner2.png" alt="banner2" /></p>
+<h1
+id="shouldnt-this-be-a-proper-cli-app-written-in-python-or-something">Shouldn't
+this be a proper CLI app written in Python or something?</h1>
+<p>Yes.</p>
+<h1 id="this-is-a-misuse-of-git-git-isnt-good-at-binary-files">This is a
+misuse of git! Git isn't good at binary files!</h1>
+<p>Also correct.</p>
+<p><img src=".internals/banners/banner3.png" alt="banner3" /></p>
+<h1 id="example-gallery">Example Gallery</h1>
+<ul>
+<li><a href="/desktop/README.html">desktop</a> - 2</li>
+</ul>
+<p><img src=".internals/banners/banner4.png" alt="banner4" /></p>
+<h1 id="nabbing-files-usage">Nabbing Files Usage</h1>
+<h2 id="nab-individual-images">Nab Individual Images</h2>
+<p>Long press / right click &gt; save link. Just don't save the
+thumbnail by mistake!</p>
+<h2 id="one-big-zip-file">One Big Zip File</h2>
+<p>You can always download everything as <a
+href="https://github.com/buckmanc/gallery_maker/archive/refs/heads/main.zip">one
+big zip file</a></p>
+<h2 id="shallow-clone">Shallow Clone</h2>
+<p>If using Git, I recommend making a shallow clone of this repo to pull
+only the current images and not the full history. A shallow <a
+href="update.sh">update script</a> is included for ease of use and
+scheduling.</p>
+<p>To make a simple shallow clone:</p>
+<pre class="shell"><code>git clone --rescurse-submodules --depth 1 https://github.com/buckmanc/gallery_maker</code></pre>
+<p>Or to clone only the directories you want in a shallow fashion (for
+example, to ignore the 12K mobile folder):</p>
+<pre class="shell"><code># shallow clone but download and checkout bupkis
+git clone --filter=blob:none --no-checkout --recurse-submodules --shallow-submodules --depth 1 https://github.com/buckmanc/gallery_maker
+
+# set git to only clone these folders
+git sparse-checkout set ./desktop ./terminal ./gallery_maker
+
+# download and checkout
+git checkout main
+</code></pre>
+</body>
+</html>
