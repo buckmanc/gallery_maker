@@ -26,9 +26,15 @@ git switch cloudflare_page || git switch -c cloudflare_page
 git pull origin cloudflare_page
 git merge main -X theirs || true
 
+# counting separately from getting paths to keep it simple
 conflictedFileCount="$(git ls-files --unmerged | wc -l)"
 if [[ "$conflictedFileCount" -gt 0 ]]
 then
+  echo "fixing merge conflict..."
+
+  # get files delineated by \0 so that special characters are not exploded
+  # then replace by new line coz that has native support
+  cleanFilePaths="$(git ls-files --unmerged --format='%(path)' -z | perl -p -e 's/\0/\n/g' | sort -u)"
   # burn any merge conflicts that make it through
   while read -r path
   do
@@ -44,7 +50,7 @@ then
 	  git add "$path"
 	fi
 
-  done < <( git ls-files --unmerged | perl -pe 's/^.+?\t//g' | sort -u)
+      done < <( echo "$cleanFilePaths" )
 
   git commit -m "auto resolve merge conflict"
 fi

@@ -26,6 +26,7 @@ cd "$tempRepoDir"
 
 # attempt to cleanup potential dirty repos
 rm -f ".git/index.lock"
+git merge --abort 2> /dev/null || true
 git checkout .
 git clean -f .
 
