@@ -2,6 +2,9 @@
 
 set -e
 
+# echo filename
+basename "${0%.*}"
+
 tempDir="$1"
 
 if [[ -z "$tempDir" ]]
@@ -18,6 +21,7 @@ tempRepoDir="$tempDir/$repoName"
 if [[ -z "$repoUrl" ]]
 then
   echo "could not identify remote repo"
+  echo "current dir: $PWD"
   exit 1
 fi
 

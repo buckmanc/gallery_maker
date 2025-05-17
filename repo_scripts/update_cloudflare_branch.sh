@@ -2,6 +2,9 @@
 
 set -e
 
+# echo filename
+basename "${0%.*}"
+
 gitRoot="$(git rev-parse --show-toplevel)"
 thisScriptDir="$(dirname -- "$0")"
 shortRemoteName="$(git remote -v | grep -iP '(github|origin)' | grep -iPo '[^/:]+/[^/]+(?= )' | perl -pe 's/\.git$//g' | head -n1)"

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# echo filename
+basename "${0%.*}"
+
 # generates a script to update mod time on image files to match their last commit time
 # this is the most viable option I could find to keep wallpapers from flooding the android gallery after every update
 # previous versions restored disk mod times after updates
