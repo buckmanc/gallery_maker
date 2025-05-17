@@ -712,7 +712,8 @@ while read -r dir; do
 	parentDirUrl="$(echo "$friendlyDirName" | sed -r -e 's|/[^/]+$||' -e 's/ /%20/g')"
 	mdText+=$'\n'$'\n'
 	mdText+="[back to top](#)"$'\n'
-	mdText+="[up one level]($parentDirUrl/README.MD)"
+	mdText+="[up one level]($parentDirUrl/README.MD)"$'\n'
+	mdText+="[home](/)"
 
 	# only write if changed
 	if [[ -f "$dirReadmePath" ]]
