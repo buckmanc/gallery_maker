@@ -46,5 +46,7 @@ then
   exit 1
 fi
 
+git -C "$tempRepoDir/gallery_maker" pull
+
 "$tempRepoDir/gallery_maker/repo_scripts/update_update_mod_time.sh" --commit
 "$tempRepoDir/gallery_maker/repo_scripts/update_cloudflare_branch.sh"
