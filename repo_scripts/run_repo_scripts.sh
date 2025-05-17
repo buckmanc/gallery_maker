@@ -15,6 +15,12 @@ repoUrl="$(git remote get-url --all origin | head -n 1)"
 repoName="${shortRemoteName#*/}"
 tempRepoDir="$tempDir/$repoName"
 
+if [[ -z "$repoUrl" ]]
+then
+  echo "could not identify remote repo"
+  exit 1
+fi
+
 mkdir -p "$tempDir"
 
 if [[ ! -d "$tempRepoDir" ]]
@@ -29,6 +35,12 @@ rm -f ".git/index.lock"
 git merge --abort 2> /dev/null || true
 git checkout .
 git clean -f .
+
+if [[ ! -d "$tempRepoDir/gallery_maker" ]]
+then
+  echo "gallery maker not present in remote repo"
+  exit 1
+fi
 
 "$tempRepoDir/gallery_maker/repo_scripts/update_update_mod_time.sh" --commit
 "$tempRepoDir/gallery_maker/repo_scripts/update_cloudflare_branch.sh"
