@@ -76,13 +76,14 @@ do
 
 done < <( echo "$files" )
 
+# TODO fix this test
 if [[ "$currentText" != "$outText" ]]
 then
 	echo "$outText" > "$outPath"
 	if [[ "$optCommit" == 1 ]]
 	then
 		git add "$outPath"
-		git commit -m "update mod time script" "$outPath"
+		git commit -m "update mod time script" "$outPath" || true
 		git push origin main
 	fi
 fi
