@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -e
 
 # heavily modified from github.com/jonascarpay/Wallpapers
@@ -29,6 +30,7 @@ shortRemoteName="$(git remote -v | grep -iP '(github|origin)' | grep -iPo '[^/:]
 raw_root="https://raw.githubusercontent.com/$shortRemoteName/main"
 repoUrl="https://github.com/$shortRemoteName"
 repoName="${shortRemoteName#*/}"
+repoNameCap="$(echo "$repoName" | perl -p -e 's/[_\-]/ /g;' -e 's/\b(.)/\u\1/g;')"
 
 # echo "shortRemoteName: $shortRemoteName"
 
@@ -795,7 +797,7 @@ readmeTemplate="${readmeTemplate//\{table of contents\}/"$tocText"}"
 readmeTemplate="${readmeTemplate//\{mobile size\}/"$mobileSize"}" 
 readmeTemplate="${readmeTemplate//\{total\}/"$(numfmt --grouping "$totalImages")"}" 
 readmeTemplate="${readmeTemplate//\{repo name\}/"${repoName,,}"}" 
-readmeTemplate="${readmeTemplate//\{repo name cap\}/"${repoName^}"}" 
+readmeTemplate="${readmeTemplate//\{repo name cap\}/"$repoNameCap"}" 
 readmeTemplate="${readmeTemplate//\{repo url\}/"$repoUrl"}" 
 
 # only write if changed

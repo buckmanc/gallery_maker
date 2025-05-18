@@ -4,28 +4,52 @@ make sure you're editing the template, doofus
 
 ![banner1](.internals/banners/banner1.png)
 
-# 2 Gallery_maker
+# Gallery Maker
 
-A collection of bash scripts (mainly just one though) for creating git-based image galleries that work on Github, Cloudflare Pages, and your own server.
+A collection of bash scripts (mainly just one though) for creating git-based image galleries that work on Github, Cloudflare Pages, and your own server. Originally designed for managing wallpaper collections, then expanded for personal photo and video archives.
 
 ![banner2](.internals/banners/banner2.png)
 
-# Shouldn't this be a proper CLI app written in Python or something?
+# How To Use
+
+```bash
+git init
+git submodule add github.com/buckmanc/gallery_maker
+# add your pictures in sub dirs
+./gallery_maker/make_gallery.sh
+git add . && git commit -m "built gallery"
+git push
+profit
+```
+
+# Hosting
+
+This project has built-in support for [Cloudflare Pages](https://pages.cloudflare.com/). Start a Page, attach your repo, and use the raw HTML format. Their max individual file size limit is 25MB and their max file count is 20,000, but you can use the [update_cloudflare_branch.sh](/repo_scripts/update_cloudflare_branch.sh) script to create a branch with only the thumbnails and html files which link to the original images in your public Github repo.
+
+![banner4](.internals/banners/banner4.png)
+
+# Theoretical Complaints
+
+## Shouldn't this be a proper CLI app written in Python or something?
 
 Yes.
 
-# This is a misuse of git! Git isn't good at binary files!
+## This is a misuse of git! Git isn't good at binary files!
 
 Also correct.
 
-![banner3](.internals/banners/banner3.png)
+## This dumps so many thumbnails onto the page at once! My browser takes forever to load it! You should be doing some kind of scrolly-scrolly magic!
+
+You're not wrong.
+
+![banner4](.internals/banners/banner4.png)
 
 # Example Gallery
 - [desktop](/desktop/README.MD) - 2
 
-![banner4](.internals/banners/banner4.png)
+![banner5](.internals/banners/banner5.png)
 
-# Nabbing Files Usage
+# Nabbing Files
 
 ## Nab Individual Images
 
@@ -34,6 +58,10 @@ Long press / right click > save link. Just don't save the thumbnail by mistake!
 ## One Big Zip File
 
 You can always download everything as [one big zip file](https://github.com/buckmanc/gallery_maker/archive/refs/heads/main.zip)
+
+## Regular Clone
+
+If you're a Git user and you have no storage concerns, just clone the whole thing.
 
 ## Shallow Clone
 

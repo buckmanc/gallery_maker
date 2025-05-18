@@ -13,6 +13,10 @@ mkdir -p "$bannerDir"
 
 rootDirs="$(find "$gitRoot/.internals/thumbnails" -mindepth 1 -maxdepth 1 -type d | sort)"
 
+# TODO if there are too few dirs with images to make the required number of banners, reuse dirs
+# watch out for there being no working dirs tho
+# probably switch to looping thru seq 1 5 and indexing rootDirs instead
+
 iDir=0
 echo "$rootDirs" | while read -r rootDir
 do

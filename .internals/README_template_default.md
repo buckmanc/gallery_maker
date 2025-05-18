@@ -25,49 +25,9 @@ Long press / right click > save link. Just don't save the thumbnail by mistake!
 
 You can always download everything as [one big zip file]({repo url}/archive/refs/heads/main.zip)
 
-## Shallow Clone
+## Regular Clone
 
-If using Git, I recommend making a shallow clone of this repo to pull only the current images and not the full history. A shallow [update script](update.sh) is included for ease of use and scheduling.
-
-To make a simple shallow clone:
-```shell
-git clone --rescurse-submodules --depth 1 {repo url}
-```
-
-Or to clone only the directories you want in a shallow fashion (for example, to ignore the {mobile size} mobile folder):
-```shell
-# shallow clone but download and checkout bupkis
-git clone --filter=blob:none --no-checkout --recurse-submodules --shallow-submodules --depth 1 {repo url}
-
-# set git to only clone these folders
-git sparse-checkout set ./desktop ./terminal ./gallery_maker
-
-# download and checkout
-git checkout main
-
-```
+If you're a Git user and you have no storage concerns, just clone the whole thing. Otherwise, here are details on [more storage efficient options](https://github.com/buckmanc/gallery_maker?tab=readme-ov-file#shallow-clone)
 
 ![banner4](.internals/banners/banner4.png)
-
-# Attribution
-
-I've added attribution where I can. Feel free to contact me or submit a pull request to add missing attribution.
-
-# Aesthetic Decisions
-
-- **Desktop/homescreen: chill**
-  - Calming, spacious designs to underly busy windows and icons
-- **Lockscreen: exciting**
-  - Anything goes
-  - Better with a neat and tidy lock screen
-    - Samsung Galaxy users can use [LockStar](https://galaxystore.samsung.com/detail/com.samsung.systemui.lockstar) to keep things clean
-- **Floaters**
-  - To be centered on the screen
-  - Usually t-shirt designs
-- **Terminal: elegant and subdued**
-  - Extremely simple, standardized designs on the opposite side from the text
-
-# Shoutouts
-
-Thanks to [jonascarpay](https://github.com/jonascarpay/wallpapers), [makccr](https://github.com/makccr/wallpapers), and [dharmx](https://github.com/dharmx/walls) for excellent examples of wallpaper repos, all the artists of various kinds for their work, and you as Mega Man X!
 
