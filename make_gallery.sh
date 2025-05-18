@@ -385,7 +385,15 @@ echo "$imgFilesAll" | while read -r src; do
 		echo -en "\r"
 	elif [[ "$srcExt" == "link" ]]
 	then
-		thumbnailUnderlying="$(echo "$target" | perl -pe 's/_link(?=\.\w{3,4}$)//g')"
+		removeUnderscoreLinkPerlRegex='s/_link(?=\.\w{3,4}$)//g'
+		thumbnailUnderlying="$(echo "$target" | perl -pe "$removeUnderscoreLinkPerlRegex")"
+		
+		# # if the underlying thumbnail was not generated this run then it will be in the "old" folder
+		# if [[ ! -f "$thumbnailUnderlying" ]]
+		# then
+		# 	thumbnailUnderlying="$(echo "$thumbnail_old" | perl -pe "$removeUnderscoreLinkPerlRegex")"
+		# fi
+
 		url="$(cat "$src")"
 		domain="$(echo "$url" | grep -iPo '^https?://[^/]+')"
 		faviconUrl="$domain/favicon.ico"
@@ -397,9 +405,8 @@ echo "$imgFilesAll" | while read -r src; do
 			curl -L "$faviconUrl" -o "$faviconPath"
 		fi
 
-
 		# slap the symbol on top of the underlying thumbnail
-		convert "$thumbnailUnderlying" "$faviconPath" -trim -gravity southeast -geometry "+8+8" -composite "$target"
+		convert "$thumbnailUnderlying" -coalesce null: "$faviconPath" -trim -gravity southeast -geometry "+8+8" +dither -layers composite "$target"
 
 	# make a new, regular thumbnail
 	else
@@ -544,7 +551,7 @@ while read -r dir; do
 	# TODO custom sort imgFiles
 	# use a sort key to handle dates
 	#	like, for example, remove '(?<=\d)[\-_ ](?=\d)'
-	imgFiles="$(find-images "$dir")"
+	imgFiles="$(find-images "$dir" | sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7)"
 	i=0
 	totalDirImages=$(echo "$imgFiles" | wc -l)
 
