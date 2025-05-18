@@ -31,3 +31,6 @@ If you're a Git user and you have no storage concerns, just clone the whole thin
 
 ![banner4](.internals/banners/banner4.png)
 
+# Links
+
+- made with [Gallery Maker](https://github.com/buckmanc/gallery_maker)
