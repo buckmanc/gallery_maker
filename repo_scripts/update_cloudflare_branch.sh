@@ -59,8 +59,8 @@ then
 fi
 
 # delete all images and video from main directory
-"$thisScriptDir/../scripts/find-images-or-videos" "$gitRoot" -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
-# delete all markdown files?
+"$thisScriptDir/../scripts/find-images-or-videos" "$gitRoot" -mindepth 2 -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
+# delete all markdown files
 find "$gitRoot" -type f -iname '*.md' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
 
 # repoint all links (not embedded images) to the raw github url
