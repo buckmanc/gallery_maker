@@ -167,7 +167,7 @@ getThumbnailPath() {
 	newExt=''
 
 	# if it's a known movie type, make a gif thumbnail
-	if [[ "$ext" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob) ]]
+	if [[ "$ext" =~ ^(3gp|3g2|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob) ]]
 	then
 		newExt="gif"
 	# otherwise, limit thumbnail types
@@ -180,6 +180,11 @@ getThumbnailPath() {
 
 	echo "${targetBase}.$newExt"
 }
+
+# store a list of all our files in lfs
+# need to expand them to full paths to match what we'll get from gnu find
+# TODO windows will use different formats for drive letters between git rev-parse --show-toplevel and find
+lfsFiles="$(git -C "$gitRoot" lfs ls-files --name-only | xargs --no-run-if-empty -d '\n' realpath)"
 
 fitDir="$gitRoot/.internals/wallpapers_to_fit"
 if [[ -d "$fitDir" ]]
@@ -281,7 +286,7 @@ then
 		shortPath="${path/#"$gitRoot"/}"
 		# only use perceptual hash filenames for specific folders
 		# only misc folders at one level deep
-		if echo "$shortPath" | grep -qiP "(/forests/|/space/|/space - fictional/|^/?[^/]+/misc/|/leaves/|/cityscapes/)" && ! echo "$filename" | grep -qiP '^[a-f0-9]{16}_'
+		if echo "$shortPath" | grep -qiP "(/forests/|/space/|/space - fictional/|^/?[^/]+/misc/|/leaves/|/cityscapes/)" && ! echo "$filename" | grep -qiP '^[a-f0-9]{16}_' && ! echo "$shortPath" | grep -qiP '(screenshots)'
 		then
 			echo -n "moving $shortPath..."
 			newPath="$(dirname -- "$path")/$(pyphash "$path")_$filename"
@@ -345,6 +350,12 @@ then
 
 fi
 
+if [[ -d "$thumbnails_old_dir" ]]
+then
+	echo "--fixing interrupted run..."
+	rsync -hau --remove-source-files --prune-empty-dirs "$thumbnails_old_dir/" "$thumbnails_dir"
+	rm -r "$thumbnails_old_dir"
+fi
 
 echo "--updating thumbnails..."
 
@@ -372,10 +383,22 @@ echo "$imgFilesAll" | while read -r src; do
 	filename="$(basename -- "$src")"
 	printf '\033[2K%4d/%d: %s...' "$i" "$totalImages" "$filename" | cut -c "-$COLUMNS" | tr -d $'\n'
 
-	srcExt="${src##*.}"
-	srcExt="${srcExt,,}"
 	target="$(getThumbnailPath "$src")"
 	thumbnail_old="$(getThumbnailPath "$src" --old)"
+	srcExt="${src##*.}"
+	srcExt="${srcExt,,}"
+	targetExt="${target##*.}"
+	targetExt="${targetExt,,}"
+
+	# use the base file as the source for links
+	if [[ "$srcExt" == "link" ]]
+	then
+		thumbSource="${src%.link}"
+	else
+		thumbSource="$src"
+	fi
+	thumbSourceExt="${thumbSource##*.}"
+	thumbSourceExt="${thumbSourceExt,,}"
 
 	target_dir="$(dirname -- "$target")"
 	mkdir -p "$target_dir"
@@ -383,30 +406,6 @@ echo "$imgFilesAll" | while read -r src; do
 	if [[ -f "$thumbnail_old" ]]; then
 		mv "$thumbnail_old" "$target"
 		echo -en "\r"
-	elif [[ "$srcExt" == "link" ]]
-	then
-		removeUnderscoreLinkPerlRegex='s/_link(?=\.\w{3,4}$)//g'
-		thumbnailUnderlying="$(echo "$target" | perl -pe "$removeUnderscoreLinkPerlRegex")"
-		
-		# # if the underlying thumbnail was not generated this run then it will be in the "old" folder
-		# if [[ ! -f "$thumbnailUnderlying" ]]
-		# then
-		# 	thumbnailUnderlying="$(echo "$thumbnail_old" | perl -pe "$removeUnderscoreLinkPerlRegex")"
-		# fi
-
-		url="$(cat "$src")"
-		domain="$(echo "$url" | grep -iPo '^https?://[^/]+')"
-		faviconUrl="$domain/favicon.ico"
-		faviconPath="$cacheDir/$(echo "$domain" | perl -pe 's|[:/\.]||g').ico"
-
-		if [[ ! -f "$faviconPath" ]]
-		then
-			mkdir -p "$cacheDir"
-			curl -L "$faviconUrl" -o "$faviconPath"
-		fi
-
-		# slap the symbol on top of the underlying thumbnail
-		convert "$thumbnailUnderlying" -coalesce null: "$faviconPath" -trim -gravity southeast -geometry "+8+8" +dither -layers composite "$target"
 
 	# make a new, regular thumbnail
 	else
@@ -430,12 +429,12 @@ echo "$imgFilesAll" | while read -r src; do
 		bgColor="none"
 
 		# altered logic for images that sit in the center
-		if echo "$src" | grep -iq "/floaters/"
+		if echo "$thumbSource" | grep -iq "/floaters/"
 		then
 			fitCaret=""
 			bgColor="black"
 		# altered logic for terminal images, which are 2/3 alpha and 1/3 black bg anyway
-		elif echo "$src" | grep -iq "/terminal/"
+		elif echo "$thumbSource" | grep -iq "/terminal/"
 		then
 			bgColor="black"
 		fi
@@ -443,14 +442,19 @@ echo "$imgFilesAll" | while read -r src; do
 		# TODO if fitting a portrait image into a landscape thumbnail
 		# center the image on the line between 1/3 and 2/3
 
-		thumbSource=''
+		timestamp=''
 		# if it's a known movie type, make a temp chunk out of the middle
 		# instead of doing a thumbnail from the beginning
-		if [[ "$srcExt" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob|gif) ]]
+		if [[ "$thumbSourceExt" =~ ^(3gp|3g2|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob|gif) ]]
 		then
 			start=0
 			fin=0
-			seconds="$(ffprobe -i "$src" -loglevel error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 | perl -pe 's/\..+?$//g')"
+			ffJson="$(ffprobe -i "$thumbSource" -loglevel error -show_entries format=duration -show_entries stream=width,height -of json)"
+			seconds="$(echo "$ffJson" | jq -r '.format.duration' | perl -pe 's/\..+?$//g')"
+			ffWidth="$(echo "$ffJson" | jq -r '.streams[0].width')"
+			ffHeight="$(echo "$ffJson" | jq -r '.streams[0].height')"
+
+			timestamp="$(printf '%02d:%02d:%02d' $((seconds/3600)) $((seconds%3600/60)) $((seconds%60)))"
 			start=$((seconds/3))
 			fin=$((start+2))
 
@@ -458,24 +462,97 @@ echo "$imgFilesAll" | while read -r src; do
 
 			if [[ "$start" -gt 0 ]]
 			then
-				thumbSource="/tmp/wallthumb.$srcExt"
-				if [[ -f "$thumbSource" ]]
+				ffmpegTemp="/tmp/wallthumb.$thumbSourceExt"
+				if [[ -f "$ffmpegTemp" ]]
 				then
-					rm -f "$thumbSource"
+					rm -f "$ffmpegTemp"
 				fi
-				ffmpeg -y -nostdin -loglevel error -ss "$start" -to "$fin" -i "$src" -c:v copy -c:a copy "$thumbSource"
+				# TODO see if resizing here is more performant
+				# would have to shrink the *smallest* dimension to match the corresponding thumbnail dimension
+				# then can use -vf "scale:200x-2" to preserve aspect ratio
+				# will have to mod the ffprobe call above to also get resolution
+
+				if [[ "$ffWidth" == "null" || "$ffHeight" == "null" ]]
+				then
+					scaleCommand=""
+				elif [[ "$ffWidth" -gt "$ffHeight" ]]
+				then
+					scaleCommand="-vf scale='${targetWidth}:-2'"
+				else
+					scaleCommand="-vf scale='-2:${targetHeight}'"
+				fi
+				# ffmpeg -y -nostdin -loglevel error -ss "$start" -to "$fin" -i "$thumbSource" -c:v copy -c:a copy "$ffmpegTemp" #|| true
+				ffmpeg -y -nostdin -loglevel error -ss "$start" -to "$fin" -i "$thumbSource" $scaleCommand "$ffmpegTemp" #|| true
+
+				if [[ -f "$ffmpegTemp" ]]
+				then
+					thumbSource="$ffmpegTemp"
+				fi
 			fi
 		fi
 
-		if [[ -z "$thumbSource" || ! -f "$thumbSource" ]]
+		frames="0-30"
+
+		# if the target is a known still image format, only use one frame
+		# this prevents things like PDF pages splitting into multiple pngs
+		if [[ "$targetExt" =~ (png|jpe?g) ]]
 		then
-			thumbSource="$src"
+			frames="0"
 		fi
 
 		# resize images, then crop to the desired resolution
+		convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions" -layers optimize +repage "$thumbSource"[$frames] "$target" || true
+
 		# write a filler image on failure
-		convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions" -layers optimize +repage "$thumbSource"[0-30] "$target" \
-		|| convert -background transparent -fill white -size "$targetDimensions" -gravity center -stroke black -strokewidth "4" caption:"?" "$target"
+		if [[ ! -f "$target" ]]
+		then
+			convert -background transparent -fill white -size "$targetDimensions" -gravity center -stroke black -strokewidth "2" caption:"?" "$target"
+		fi
+
+		# build the caption
+		caption=''
+		if echo "$lfsFiles" | grep -Piq "$src"
+		then
+			caption+="lfs"$'\n'
+		fi
+		if [[ "$srcExt" == "pdf" ]]
+		then
+			caption+="$srcExt"$'\n'
+		fi
+		if [[ -n "$timestamp" ]]
+		then
+			caption+="$timestamp"$'\n'
+		fi
+
+		# slap the caption on the thumbnail if present
+		if [[ -n "$caption" ]]
+		then
+			# trim off leading/trailing new lines
+			# hours if all zero
+			# leading zero in the tens place
+			caption="$(echo "$caption" | perl -0777pe 's/(\n+$|^\n+)//g;' -e 's/^00:(?=\d\d:\d\d)//g;' -e 's/^0(?=\d)//g;')"
+
+			# caption
+			# echo "captioning thumbnail with '$caption'"
+			convert "$target" -pointsize 30 -coalesce null: -background transparent -fill white -gravity southeast -stroke black -strokewidth "1" -geometry "+8-2" -interline-spacing -10 caption:"$caption" -layers composite +repage "$target"
+		fi
+
+		if [[ "$srcExt" == "link" ]]
+		then
+			url="$(cat "$src")"
+			domain="$(echo "$url" | grep -iPo '^https?://[^/]+')"
+			faviconUrl="$domain/favicon.ico"
+			faviconPath="$cacheDir/$(echo "$domain" | perl -p -e 's|[:/\.]||g;' -e 's/^(https?|www)+//g;').ico"
+
+			if [[ ! -f "$faviconPath" ]]
+			then
+				mkdir -p "$cacheDir"
+				curl -L "$faviconUrl" -o "$faviconPath"
+			fi
+
+			# slap the symbol on top of the thumbnail
+			convert "$target" -coalesce null: "$faviconPath" -trim -gravity southwest -geometry "+8+8" +dither -layers composite "$target"
+		fi
 
 		echo    "${src#"$gitRoot"}~$(date +%s)" >> "$fileListFile"
 
@@ -913,20 +990,48 @@ then
 fi
 
 # TODO exclude files already added
-lfsFiles="$(git -C "$gitRoot" lfs ls-files)"
-largeFiles="$(find-images "$gitRoot" -size +100M  -size -2G | wc -l)"
-tooLargeFiles="$(find-images "$gitRoot" -size +2G | wc -l)"
+if [[ -z "$lfsFiles" ]]
+then
+	lfsFilesCount=0
+else
+	lfsFilesCount="$(echo "$lfsFiles" | wc -l)"
+fi
 
-if [[ "$largeFiles" -gt 0 ]]
+# need to specify in MBs coz otherwise a large gap is created by the rounding
+largeFiles="$(find-images "$gitRoot" -size +100M -size -2048M | (grep -wvf <(echo "$lfsFiles") || true))"
+if [[ -z "$largeFiles" ]]
 then
-	echo
-	echo "$largeFiles files are larger than Guthib's size limit. Add them to lfs with scripts/lfs_add.sh. Consider additionally uploading elsewhere and linking"
+	largeFilesCount=0
+else
+	largeFilesCount="$(echo "$largeFiles" | wc -l)"
 fi
-if [[ "$tooLargeFiles" -gt 0 ]]
+
+tooLargeFiles="$(find-images "$gitRoot" -size +2048M)"
+if [[ -z "$tooLargeFiles" ]]
 then
-	echo
-	echo "$tooLargeFiles files are larger than Guthib LFS's size limit. Consider compressing them coz damn"
+	tooLargeFilesCount=0
+else
+	tooLargeFilesCount="$(echo "$tooLargeFiles" | wc -l)"
 fi
+
+echo
+
+if [[ "$lfsFilesCount" -gt 0 ]]
+then
+	echo "$lfsFilesCount files stored in Git LFS"
+fi
+if [[ "$largeFilesCount" -gt 0 ]]
+then
+	echo "$largeFilesCount files are larger than Guthib's size limit. Add them to lfs with scripts/lfs_add.sh. Consider additionally uploading elsewhere and linking"
+fi
+if [[ "$tooLargeFilesCount" -gt 0 ]]
+then
+	echo "$tooLargeFilesCount files are larger than Guthib LFS's size limit. Consider compressing them coz damn"
+fi
+
+# echo "$lfsFiles" > lfsFiles.log
+# echo "$largeFiles" > largeFiles.log
+# echo "$tooLargeFiles" > tooLargeFiles.log
 
 echo
 echo "done at $(date)"
