@@ -45,11 +45,12 @@ fileListDir="$gitRoot/.internals/filelist"
 fileListFile="$fileListDir/${branchName}.log"
 fileListFileMain="$fileListDir/main.log"
 cacheDir="$HOME/.cache/gallery_maker"
+tempDir="/tmp/gallery_maker"
 
 headerDirNameRegex='s/^(\d{2}|[zZ][xyzXYZ])[ \-_]{1,3}//g'
 subDirIdRegex='s/[ \-_"#]+/-/g'
 
-rm "$tocMD" > /dev/null 2>&1 || true
+rm -f "$tocMD"
 
 update-script() {
 
@@ -389,6 +390,8 @@ echo "$imgFilesAll" | while read -r src; do
 	srcExt="${srcExt,,}"
 	targetExt="${target##*.}"
 	targetExt="${targetExt,,}"
+	srcFileNameNoExt="$(basename "$src")"
+	srcFileNameNoExt="${srcFileNameNoExt%%.*}"
 
 	# use the base file as the source for links
 	if [[ "$srcExt" == "link" ]]
@@ -462,27 +465,46 @@ echo "$imgFilesAll" | while read -r src; do
 
 			if [[ "$start" -gt 0 ]]
 			then
-				ffmpegTemp="/tmp/wallthumb.$thumbSourceExt"
-				if [[ -f "$ffmpegTemp" ]]
+				mkdir -p "$tempDir"
+
+				# if final output is going to be a gif, have ffmpeg make a gif
+				# otherwise use the same format as the source
+				if [[ "$targetExt" == "gif" ]]
 				then
-					rm -f "$ffmpegTemp"
+					ffmpegExt="gif"
+				else
+					ffmpegExt="$thumbSourceExt"
 				fi
-				# TODO see if resizing here is more performant
-				# would have to shrink the *smallest* dimension to match the corresponding thumbnail dimension
-				# then can use -vf "scale:200x-2" to preserve aspect ratio
-				# will have to mod the ffprobe call above to also get resolution
+
+				ffmpegTemp="$tempDir/$srcFileNameNoExt.$ffmpegExt"
+				rm -f "$ffmpegTemp"
+
+				# resizing here is more performant
+				# shrink the smallest dimension to match the corresponding thumbnail dimension
+				# ...shrinking to 2x and letting image magick to do the rest later
+				# for some reason if we shrink all the way down with ffmpeg the colors go wonky
+				# don't know why
 
 				if [[ "$ffWidth" == "null" || "$ffHeight" == "null" ]]
 				then
-					scaleCommand=""
+					scaleRes="320:-2"
 				elif [[ "$ffWidth" -gt "$ffHeight" ]]
 				then
-					scaleCommand="-vf scale='${targetWidth}:-2'"
+					scaleRes="$((targetWidth*2)):-2"
 				else
-					scaleCommand="-vf scale='-2:${targetHeight}'"
+					scaleRes="-2:$((targetHeight*2))"
 				fi
+
+				# use special gif args for optimal output
+				if [[ "$ffmpegExt" == "gif" ]]
+				then
+					videoFilterArg="fps=10,scale=${scaleRes}:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
+				else
+					videoFilterArg="scale=${scaleRes}:flags=lanczos"
+				fi
+
 				# ffmpeg -y -nostdin -loglevel error -ss "$start" -to "$fin" -i "$thumbSource" -c:v copy -c:a copy "$ffmpegTemp" #|| true
-				ffmpeg -y -nostdin -loglevel error -ss "$start" -to "$fin" -i "$thumbSource" $scaleCommand "$ffmpegTemp" #|| true
+				ffmpeg -y -nostdin -loglevel error -ss "$start" -to "$fin" -i "$thumbSource" -vf "$videoFilterArg" "$ffmpegTemp" || true
 
 				if [[ -f "$ffmpegTemp" ]]
 				then
@@ -519,7 +541,7 @@ echo "$imgFilesAll" | while read -r src; do
 		then
 			caption+="$srcExt"$'\n'
 		fi
-		if [[ -n "$timestamp" ]]
+		if [[ -n "$timestamp" && "$srcExt" != "link" ]]
 		then
 			caption+="$timestamp"$'\n'
 		fi
@@ -534,7 +556,7 @@ echo "$imgFilesAll" | while read -r src; do
 
 			# caption
 			# echo "captioning thumbnail with '$caption'"
-			convert "$target" -pointsize 30 -coalesce null: -background transparent -fill white -gravity southeast -stroke black -strokewidth "1" -geometry "+8-2" -interline-spacing -10 caption:"$caption" -layers composite +repage "$target"
+			convert "$target" -pointsize 30 -coalesce null: -background transparent -fill white -gravity southeast -stroke black -strokewidth "1" -geometry "+4-2" -interline-spacing -10 caption:"$caption" -layers composite +repage "$target"
 		fi
 
 		if [[ "$srcExt" == "link" ]]
@@ -551,7 +573,13 @@ echo "$imgFilesAll" | while read -r src; do
 			fi
 
 			# slap the symbol on top of the thumbnail
-			convert "$target" -coalesce null: "$faviconPath" -trim -gravity southwest -geometry "+8+8" +dither -layers composite "$target"
+			convert "$target" -coalesce null: \( "$faviconPath" -trim +repage \) -gravity southeast -geometry "+4+4" +dither -layers composite "$target"
+		fi
+
+		# clear temp file if present
+		if [[ -f "$ffmpegTemp" ]]
+		then
+			rm "$ffmpegTemp"
 		fi
 
 		echo    "${src#"$gitRoot"}~$(date +%s)" >> "$fileListFile"
