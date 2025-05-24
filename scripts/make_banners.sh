@@ -45,8 +45,14 @@ do
 
   # do a rough calc to get the right amount of images
   exampleImg="$("$thisScriptDir/find-images" "$rootDir" | head -n 1)"
-  imgWidth="$(identify -format '%w' "$exampleImg")"
+  imgWidth="$(identify -format '%w' "$exampleImg"[0])"
   imgLimit="$(echo "($targetWidth / ($imgWidth+25)) -2" | bc -l | cut -d '.' -f1)"
+
+  # should not occur, but just in case
+  if [[ "$imgLimit" -le 0 ]]
+  then
+    imgLimit=10
+  fi
 
   dirs="$(find "$rootDir" -mindepth 1 -type d | shuf)"
   dirCount="$(echo "$dirs" | wc -l)"
@@ -59,9 +65,18 @@ do
     imgPerDir=$((imgPerDir+1))
   fi
 
+  # echo "rootDir: $rootDir"
+  # echo "exampleImg: $exampleImg"
+  # echo "targetWidth: $targetWidth"
+  # echo "imgWidth: $imgWidth"
+  # echo "imgLimit: $imgLimit"
+  # echo "imgPerDir: $imgPerDir"
+
   while read -r dir
   do
     ((i++)) || true
+
+    # echo "dir: $dir"
 
     if [[ -z "$dir" ]]
     then
@@ -93,6 +108,8 @@ do
     convert "$outpath" -resize "x500>^" "$outpath"
 
     rm "$tempImgPaths"
+  # else
+  #   echo "failed"
   fi
 
 done
