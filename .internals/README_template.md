@@ -84,4 +84,13 @@ git sparse-checkout set ./desktop ./terminal ./gallery_maker
 git checkout main
 
 ```
+## Storage Concerns and Limits
 
+name|limit
+---|---
+github filesize|100MB
+github lfs filesize|2GB
+github push|2GB
+github lfs free max storage|10GB
+cloudflare pages max filesize|20MB
+cloudflare pages max file count|20,000
