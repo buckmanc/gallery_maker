@@ -50,6 +50,10 @@ tempDir="/tmp/gallery_maker"
 headerDirNameRegex='s/^(\d{2}|[zZ][xyzXYZ])[ \-_]{1,3}//g'
 subDirIdRegex='s/[ \-_"#]+/-/g'
 
+githubFileMaxBytes=98000000
+githubPushMaxBytes=1980000000
+githubLfszMaxBytes=1980000000
+
 rm -f "$tocMD"
 
 update-script() {
@@ -423,6 +427,7 @@ echo "$imgFilesAll" | while read -r src; do
 		targetHeight=$(echo "$targetWidth/($aspectRatio)" | bc -l)
 		targetHeight="${targetHeight%%.*}"
 		targetDimensions="${targetWidth}x${targetHeight}"
+		fileSize="$(stat -c %s "$src")"
 
 		# echo
 		# echo "aspectRatio: $aspectRatio"
@@ -458,6 +463,11 @@ echo "$imgFilesAll" | while read -r src; do
 			ffHeight="$(echo "$ffJson" | jq -r '.streams[0].height')"
 
 			timestamp="$(printf '%02d:%02d:%02d' $((seconds/3600)) $((seconds%3600/60)) $((seconds%60)))"
+
+			# trim off hours if all zero
+			# trim off leading zero in the tens place
+			timestamp="$(echo "$timestamp" | perl -p -e 's/^00:(?=\d\d:\d\d)//g;' -e 's/^0(?=\d)//g;')"
+
 			start=$((seconds/3))
 			fin=$((start+2))
 
@@ -536,6 +546,9 @@ echo "$imgFilesAll" | while read -r src; do
 		if echo "$lfsFiles" | grep -Piq "$src"
 		then
 			caption+="lfs"$'\n'
+		elif [[ "$fileSize" -gt "$githubFileMaxBytes" ]]
+		then
+			caption+="X"
 		fi
 		if [[ "$srcExt" == "pdf" ]]
 		then
@@ -550,9 +563,7 @@ echo "$imgFilesAll" | while read -r src; do
 		if [[ -n "$caption" ]]
 		then
 			# trim off leading/trailing new lines
-			# hours if all zero
-			# leading zero in the tens place
-			caption="$(echo "$caption" | perl -0777pe 's/(\n+$|^\n+)//g;' -e 's/^00:(?=\d\d:\d\d)//g;' -e 's/^0(?=\d)//g;')"
+			caption="$(echo "$caption" | perl -0777pe 's/(\n+$|^\n+)//g;')";
 
 			# caption
 			# echo "captioning thumbnail with '$caption'"
@@ -1026,7 +1037,7 @@ else
 fi
 
 # need to specify in MBs coz otherwise a large gap is created by the rounding
-largeFiles="$(find-images "$gitRoot" -size +100M -size -2048M | (grep -wvf <(echo "$lfsFiles") || true))"
+largeFiles="$(find-images "$gitRoot" -size +"$githubFileMaxBytes"c -size -"$githubLfszMaxBytes"c | (grep -wvf <(echo "$lfsFiles") || true))"
 if [[ -z "$largeFiles" ]]
 then
 	largeFilesCount=0
@@ -1034,7 +1045,7 @@ else
 	largeFilesCount="$(echo "$largeFiles" | wc -l)"
 fi
 
-tooLargeFiles="$(find-images "$gitRoot" -size +2048M)"
+tooLargeFiles="$(find-images "$gitRoot" -size +"$githubLfszMaxBytes"c)"
 if [[ -z "$tooLargeFiles" ]]
 then
 	tooLargeFilesCount=0
@@ -1050,11 +1061,11 @@ then
 fi
 if [[ "$largeFilesCount" -gt 0 ]]
 then
-	echo "$largeFilesCount files are larger than Guthib's size limit. Add them to lfs with scripts/lfs_add.sh. Consider additionally uploading elsewhere and linking"
+	echo "$largeFilesCount files too large for Guthib! Consider compressing them or uploading elsewhere and linking."
 fi
 if [[ "$tooLargeFilesCount" -gt 0 ]]
 then
-	echo "$tooLargeFilesCount files are larger than Guthib LFS's size limit. Consider compressing them coz damn"
+	echo "$tooLargeFilesCount files are too large for Guthib LFS!"
 fi
 
 # echo "$lfsFiles" > lfsFiles.log
