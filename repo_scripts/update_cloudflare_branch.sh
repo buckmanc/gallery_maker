@@ -26,7 +26,7 @@ git fetch --all
 git switch cloudflare_page || git switch -c cloudflare_page
 
 # merge main branch changes
-git pull origin cloudflare_page
+git pull origin cloudflare_page || true
 git merge main -X theirs || true
 
 # counting separately from getting paths to keep it simple
