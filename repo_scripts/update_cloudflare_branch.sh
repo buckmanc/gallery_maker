@@ -61,7 +61,9 @@ fi
 # delete all images and video from main directory
 "$thisScriptDir/../scripts/find-images-or-videos" "$gitRoot" -mindepth 2 -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
 # delete all markdown files
-find "$gitRoot" -type f -iname '*.md' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
+find "$gitRoot" -type f -iname '*.md' -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
+# delete anything remaining over 25MB coz it'll break the build anyway
+find "$gitRoot" -type f -size +25M -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
 
 # repoint all links (not embedded images) to the raw github url
 git ls-files | grep -iP '\.html$' | xargs --no-run-if-empty -d '\n' perl -i -pe 's@href="\/(?!("|\.|.*?readme\.html|.*?README\.html))@href="'"$raw_root"'/@g'
