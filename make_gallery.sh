@@ -548,7 +548,7 @@ echo "$imgFilesAll" | while read -r src; do
 			caption+="lfs"$'\n'
 		elif [[ "$fileSize" -gt "$githubFileMaxBytes" ]]
 		then
-			caption+="X"
+			caption+="X"$'\n'
 		fi
 		if [[ "$srcExt" == "pdf" ]]
 		then

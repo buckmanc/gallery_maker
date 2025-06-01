@@ -63,7 +63,7 @@ commitCount=0
 
 while read -r file
 do
-  if [[ -z "$file" ]]
+  if [[ -z "$file" || ! -f "$file" ]]
   then
     continue
   fi

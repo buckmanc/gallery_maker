@@ -30,7 +30,7 @@ git pull origin cloudflare_page || true
 git merge main -X theirs || true
 
 # counting separately from getting paths to keep it simple
-conflictedFileCount="$(git ls-files --unmerged | wc -l)"
+conflictedFileCount="$(git ls-files --unmerged --ignore-submodules | wc -l)"
 if [[ "$conflictedFileCount" -gt 0 ]]
 then
   echo "fixing merge conflict..."

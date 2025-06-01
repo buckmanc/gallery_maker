@@ -39,6 +39,7 @@ rm -f ".git/index.lock"
 git merge --abort 2> /dev/null || true
 git checkout .
 git clean -f .
+git remote prune origin
 
 if [[ ! -d "$tempRepoDir/gallery_maker" ]]
 then
