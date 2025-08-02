@@ -664,10 +664,8 @@ while read -r dir; do
 
 	bottomLevelDir="$(bottom-level-dir "$dir")"
 
-	# TODO custom sort imgFiles
-	# use a sort key to handle dates
-	#	like, for example, remove '(?<=\d)[\-_ ](?=\d)'
-	imgFiles="$(find-images "$dir" | sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7)"
+	# sorting images with a custom sort key
+	imgFiles="$(find-images "$dir" | "$thisScriptDir/scripts/custom-file-sort.sh")"
 	i=0
 	totalDirImages=$(echo "$imgFiles" | wc -l)
 
@@ -676,7 +674,7 @@ while read -r dir; do
 	mdText+="# $headerDirName - $(numfmt --grouping "$totalDirImages")"$'\n'
 
 	# only find immediate sub dirs
-	subDirs="$(find "$dir" -mindepth 1 -maxdepth 1 -type d | sort)"
+	subDirs="$(find "$dir" -mindepth 1 -maxdepth 1 -type d | "$thisScriptDir/scripts/custom-file-sort.sh")"
 	# subDirs="$(echo "$imgFiles" | sed -r 's|/[^/]+$||' | sort -u)"
 
 	# if [[ "$newSubDirs" != "$subDirs" ]]
@@ -870,9 +868,12 @@ echo
 echo "$iMdSkip/$totalDirs md files skipped"
 echo "$iMdUnchanged/$totalDirs md files unchanged"
 
+echo
+echo "--updating root readme..."
+
 # build the root table of contents
 pathRootEscaped="$(quoteRe "$gitRoot/")"
-rootDirs="$(echo "$imgFilesAll" | sed "s/^$pathRootEscaped//g" | grep -iPo '^[^/]+' | sort -u)"
+rootDirs="$(echo "$imgFilesAll" | sed "s/^$pathRootEscaped//g" | grep -iPo '^[^/]+' | "$thisScriptDir/scripts/custom-file-sort.sh")"
 yearDirCount="$(echo "$rootDirs" | grep -iP '(^(19|20)\d\d|(19|20)\d\d$)' | wc -l)"
 
 echo "$rootDirs" | while read -r rootDir
