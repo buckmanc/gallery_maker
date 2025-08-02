@@ -543,13 +543,16 @@ echo "$imgFilesAll" | while read -r src; do
 
 		# build the caption
 		caption=''
-		if echo "$lfsFiles" | grep -Piq "$src"
-		then
-			caption+="lfs"$'\n'
-		elif [[ "$fileSize" -gt "$githubFileMaxBytes" ]]
-		then
-			caption+="X"$'\n'
-		fi
+
+		# now using bucket storage for large files
+		# so the user/viewer shouldn't need to care where they're stored
+		# if echo "$lfsFiles" | grep -Piq "$src"
+		# then
+		# 	caption+="lfs"$'\n'
+		# elif [[ "$fileSize" -gt "$githubFileMaxBytes" ]]
+		# then
+		# 	caption+="X"$'\n'
+		# fi
 		if [[ "$srcExt" == "pdf" ]]
 		then
 			caption+="$srcExt"$'\n'
