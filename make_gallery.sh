@@ -781,7 +781,8 @@ while read -r dir; do
 
 			subDirCount="$(echo "$imgFiles" | grep -iPc "$subDirPathReggie")"
 
-			subDirHeader="## [$subDirName]($subDirReadmeUrl) - $subDirCount"
+			# subDirHeader="## [$subDirName]($subDirReadmeUrl) - $subDirCount"
+			subDirHeader="## [$subDirName]($subDirReadmeUrl)"
 
 			# if [[ "$dirReadmePath" == "$rootReadmePath" ]]
 			# then
@@ -805,7 +806,7 @@ while read -r dir; do
 				else
 					mdText+=$'\n'
 				fi
-					mdText+=$'\n'
+				mdText+=$'\n'
 
 			#thumbnails only
 			else
@@ -818,6 +819,18 @@ while read -r dir; do
 					mdText+="<a id=\"${customHeaderID}\"></a>"$'\n'
 					mdText+=$'\n'
 					mdText+="${subDirHeader}"$'\n'
+					
+					if echo "$subDirName" | grep -Piq '^(19|20)\d\d.+?misc'
+					then
+						detailsOpenTag=""
+					else
+						detailsOpenTag="open"
+					fi
+
+					mdText+="<details $detailsOpenTag>"$'\n'
+					mdText+="<summary>$subDirCount files</summary>"$'\n'
+					mdText+="<p>"$'\n'
+				mdText+=$'\n'
 				fi
 
 				mdText+="[![$alt_text]($thumbnailUrl \"$alt_text\")]($imageUrl)"$'\n'
@@ -833,6 +846,10 @@ while read -r dir; do
 		# fi
 
 		done < <( echo "$subDirImgFiles" )
+
+		mdText+=$'\n'
+		mdText+="</p>"$'\n'
+		mdText+="</details>"$'\n'
 	done < <( echo "$subDirs" )
 
 	parentDirUrl="$(echo "$friendlyDirName" | sed -r -e 's|/[^/]+$||' -e 's/ /%20/g')"
