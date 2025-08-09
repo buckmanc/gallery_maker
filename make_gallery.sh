@@ -88,8 +88,8 @@ else
 fi
 
 find-images-including-thumbnails() {
-	imgAndVids="$("$thisScriptDir/scripts/find-images-or-videos" "$@"	-not -path '*/scripts/*' -not -path '*/repo_scripts/*' -not -type l -not -path '*/temp *' "${excludeGalleryMaker[@]}")"
-	links="$(find "$@" -iname '*.link'									-not -path '*/scripts/*' -not -path '*/repo_scripts/*' -not -type l -not -path '*/temp *' "${excludeGalleryMaker[@]}")"
+	imgAndVids="$("$thisScriptDir/scripts/find-images-or-videos" "$@"	-not -path '*/scripts/*' -not -path '*/repo_scripts/*' -not \( -type l -and -ipath '*/all/*' \) -not -path '*/temp *' "${excludeGalleryMaker[@]}")"
+	links="$(find "$@" -iname '*.link'									-not -path '*/scripts/*' -not -path '*/repo_scripts/*' -not \( -type l -and -ipath '*/all/*' \) -not -path '*/temp *' "${excludeGalleryMaker[@]}")"
 
 	# deliberately sorting links to the bottom here
 	# for the sake of link thumbnails depending on the source thumbnail
