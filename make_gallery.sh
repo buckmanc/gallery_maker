@@ -43,15 +43,31 @@ readmeTemplatePath="$gitRoot/.internals/README_template.md"
 readmeTemplateDefaultPath="$thisScriptDir/.internals/README_template_default.md"
 fileListDir="$gitRoot/.internals/filelist"
 fileListFile="$fileListDir/${branchName}.log"
-fileListFileMain="$fileListDir/main.log"
+# fileListFileMain="$fileListDir/main.log"
 cacheDir="$HOME/.cache/gallery_maker"
 tempDir="/tmp/gallery_maker"
+
+if (type facedetect > /dev/null 2>&1)
+then
+	hasFacedetect=1
+else
+	hasFacedetect=0
+	echo "facedetect not installed!"
+fi
+
+if (type pandoc > /dev/null 2>&1)
+then
+	hasPandoc=1
+else
+	hasPandoc=0
+	echo "pandoc not installed!"
+fi
 
 headerDirNameRegex='s/^(\d{2}|[zZ][xyzXYZ])[ \-_]{1,3}//g'
 subDirIdRegex='s/[ \-_"#]+/-/g'
 
 githubFileMaxBytes=98000000
-githubPushMaxBytes=1980000000
+# githubPushMaxBytes=1980000000
 githubLfszMaxBytes=1980000000
 
 rm -f "$tocMD"
@@ -427,7 +443,7 @@ echo "$imgFilesAll" | while read -r src; do
 		targetHeight=$(echo "$targetWidth/($aspectRatio)" | bc -l)
 		targetHeight="${targetHeight%%.*}"
 		targetDimensions="${targetWidth}x${targetHeight}"
-		fileSize="$(stat -c %s "$src")"
+		# fileSize="$(stat -c %s "$src")"
 
 		# echo
 		# echo "aspectRatio: $aspectRatio"
@@ -532,8 +548,96 @@ echo "$imgFilesAll" | while read -r src; do
 			frames="0"
 		fi
 
-		# resize images, then crop to the desired resolution
-		convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions" -layers optimize +repage "$thumbSource"[$frames] "$target" || true
+		offset="+0+0"
+
+		# center on faces if possible
+		if [[ "$hasFacedetect" == 1 && "$frames" == 0 && "${repoName,,}" != *"wallpaper"* ]]
+		then
+			faceCenter="$(facedetect --center --biggest "$thumbSource" 2> /dev/null || true)"
+
+			if [[ -n "$faceCenter" ]]
+			then
+				echo -n "face!"
+
+				sourceDim="$(identify -format "%wx%h" "$thumbSource")"
+				sourceWidth="${sourceDim%%x*}"
+				sourceHeight="${sourceDim##*x}"
+
+				# shrink ratio would only determined by the appropriate axis
+				if [[ "$targetHeight" -gt "$targetWidth" ]]
+				then
+					shrinkRatio="$(echo "$targetHeight / $sourceHeight" | bc -l)"
+				else
+					shrinkRatio="$(echo "$targetWidth / $sourceWidth" | bc -l)"
+				fi
+
+				sourceWidthAdj="$(echo "$sourceWidth * $shrinkRatio" | bc -l)"
+				sourceHeightAdj="$(echo "$sourceHeight * $shrinkRatio" | bc -l)"
+				sourceWidthAdj="${sourceWidthAdj%%.*}"
+				sourceHeightAdj="${sourceHeightAdj%%.*}"
+
+				faceXOrig="${faceCenter%% *}"
+				faceYOrig="${faceCenter##* }"
+
+				faceX="$(echo "$faceXOrig * $shrinkRatio" | bc -l)"
+				faceX="${faceX%%.*}"
+				faceY="$(echo "$faceYOrig * $shrinkRatio" | bc -l)"
+				faceY="${faceY%%.*}"
+
+				offsetX=0
+				offsetY=0
+
+				if [[ "$targetHeight" -gt "$targetWidth" ]]
+				then
+					# center minus face coord
+					offsetX=$(((sourceWidthAdj/2)-faceX))
+					offsetX=$((offsetX*-1))
+
+					maxAbsOffset=$(((sourceWidthAdj-targetWidth)/2))
+
+					if [[ "${offsetX#-}" -gt "$maxAbsOffset" ]]
+					then
+						if [[ "$offsetX" -gt 0 ]]
+						then
+							offsetX="$maxAbsOffset"
+						else
+							offsetX="-$maxAbsOffset"
+						fi
+					fi
+				else	
+					# center minus face coord
+					offsetY=$(((sourceHeightAdj/2)-faceY))
+					offsetY=$((offsetY*-1))
+
+					maxAbsOffset=$(((sourceHeightAdj-targetHeight)/2))
+
+					if [[ "${offsetY#-}" -gt "$maxAbsOffset" ]]
+					then
+						if [[ "$offsetY" -gt 0 ]]
+						then
+							offsetY="$maxAbsOffset"
+						else
+							offsetY="-$maxAbsOffset"
+						fi
+					fi
+				fi
+
+				# ensure leading +/-
+				if [[ "${offsetX:0:1}" != "-" ]]
+				then
+					offsetX="+$offsetX"
+				fi
+				if [[ "${offsetY:0:1}" != "-" ]]
+				then
+					offsetY="+$offsetY"
+				fi
+
+				offset="$offsetX$offsetY"
+			fi
+		fi
+
+		# resize images, then crop to the desired resolution with -extent
+		convert -background "$bgColor" -dispose none -auto-orient -thumbnail "${targetDimensions}${fitCaret}" -unsharp 0x1.0 -gravity Center -extent "$targetDimensions$offset" -layers optimize +repage "$thumbSource"[$frames] "$target" || true
 
 		# write a filler image on failure
 		if [[ ! -f "$target" ]]
@@ -970,7 +1074,7 @@ homeReadmeHtmlPath="${gitRoot}/README.html"
 indexHtmlPath="${gitRoot}/index.html"
 
 # if pandoc is installed, convert the markdown files to html for easy preview and debugging
-if type pandoc >/dev/null 2>&1
+if [[ "$hasPandoc" == 1 ]]
 then
 	echo "--updating readme html's..."
 	mdFiles=$(find "$gitRoot" -type f -iname '*.md' -not -path '*/.*' -not -iname 'attrib.md' "${excludeGalleryMaker[@]}" | sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7)
