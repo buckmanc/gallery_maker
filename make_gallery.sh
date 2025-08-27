@@ -1103,6 +1103,7 @@ then
 		then
 			rm "$htmlPath"
 		fi
+
 		metaTitle="${src%.*}"
 		metaTitle="${metaTitle#"$gitRoot"}"
 		metaTitle="${metaTitle#/}"
@@ -1123,7 +1124,14 @@ then
 
 		metaTitle="$(echo "$metaTitle" | perl -pe 's/_/ /g')"
 
-		htmlText=$(pandoc --from=gfm --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" "$src")
+		# very rarely a seemingly medium sized markdown file causes a memory blowout when reading as gfm, but succeeds when reading as markdown
+		# but "markdown" fails for very large files
+		# hence setting a memory limit and using "markdown" as a failover for "gfm"
+		htmlText="$(\
+			pandoc --from=gfm --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" +RTS -M10G -RTS "$src" | \
+			pandoc --from=markdown --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" +RTS -M10G -RTS "$src"
+	)"
+
 		htmlText="${htmlText//.md/.html}"
 		htmlText="${htmlText//.MD/.html}"
 		htmlText="${htmlText//"$raw_root"/}"
