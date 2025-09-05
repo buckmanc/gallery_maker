@@ -1127,8 +1127,11 @@ then
 		# very rarely a seemingly medium sized markdown file causes a memory blowout when reading as gfm, but succeeds when reading as markdown
 		# but "markdown" fails for very large files
 		# hence setting a memory limit and using "markdown" as a failover for "gfm"
+		htmlText="pandoc html generation failure"
 		htmlText="$(\
-			pandoc --from=gfm --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" +RTS -M10G -RTS "$src" | \
+			timeout 30m \
+			pandoc --from=gfm --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" +RTS -M10G -RTS "$src" || \
+			timeout 30m \
 			pandoc --from=markdown --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" +RTS -M10G -RTS "$src"
 	)"
 
