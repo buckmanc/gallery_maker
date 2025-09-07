@@ -858,12 +858,12 @@ while read -r dir; do
 			then
 				imageUrl="$(cat "$imgPath")"
 				imageUrl="${imageUrl// /%20}"
-				imageUrlRawRoot="$raw_root$imageUrl"
+				# imageUrlRawRoot="$raw_root$imageUrl"
 			# otherwise use the url of the file
 			else
 				imageUrl="${imgPath/#"$gitRoot"/}"
 				imageUrl="${imageUrl// /%20}"
-				imageUrlRawRoot="$raw_root$imageUrl"
+				# imageUrlRawRoot="$raw_root$imageUrl"
 			fi
 
 			subDirReadmeUrl="$subDir/README.MD"
@@ -893,28 +893,6 @@ while read -r dir; do
 					#
 			# fi
 
-			# show full image for bottom level dirs
-			# TODO support dirs with images at depth 1 *and* sub dirs
-			if [[ "$bottomLevelDir" == 1 ]]
-			then
-
-				# TODO handle .link files differently
-
-				mdText+="[![$alt_text]($imageUrl \"$alt_text\")]($imageUrlRawRoot)"
-
-				# have to do a bunch of shenanigans to get the attribution immediately below the picture
-				if [ -n "$attrib" ]
-				then
-					mdText+="\\"$'\n'
-					mdText+="$attrib"$'\n'
-				else
-					mdText+=$'\n'
-				fi
-				mdText+=$'\n'
-
-			#thumbnails only
-			else
-
 				if ! echo "$mdText" | grep -qP "^$(quoteRe "${subDirHeader}")\$"
 				then
 					# adding an HTML anchor for persistent header links
@@ -924,7 +902,7 @@ while read -r dir; do
 					mdText+=$'\n'
 					mdText+="${subDirHeader}"$'\n'
 					
-					if echo "$subDirName" | grep -Piq '^(19|20)\d\d.+?misc'
+					if echo "$subDirName" | grep -Piq '^(19|20)\d\d.+?misc$' && [[ "$bottomLevelDir" == 0 ]]
 					then
 						detailsOpenTag=""
 					else
@@ -938,8 +916,6 @@ while read -r dir; do
 				fi
 
 				mdText+="[![$alt_text]($thumbnailUrl \"$alt_text\")]($imageUrl)"$'\n'
-
-			fi
 
 			echo -en '\r'
 
@@ -1115,9 +1091,9 @@ then
 		then
 			metaTitle="${repoName^}"
 			cssPath="$cssPathBigImages"
-		elif [[ "$bottomLevelDir" == 1 ]]
-		then
-			cssPath="$cssPathBigImages"
+		# elif [[ "$bottomLevelDir" == 1 ]]
+		# then
+		# 	cssPath="$cssPathBigImages"
 		else
 			cssPath="$cssPathTinyImages"
 		fi
