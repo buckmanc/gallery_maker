@@ -413,10 +413,26 @@ echo "$imgFilesAll" | while read -r src; do
 	srcFileNameNoExt="$(basename "$src")"
 	srcFileNameNoExt="${srcFileNameNoExt%%.*}"
 
-	# use the base file as the source for links
+	# handle .link files
 	if [[ "$srcExt" == "link" ]]
 	then
-		thumbSource="${src%.link}"
+		# use the base file as the source for links if that file exists
+		dotLinkless="${src%.link}"
+		if [[ -f "$dotLinkless" ]]
+		then
+			thumbSource="$dotLinkless"
+		else
+			linkDest="$(cat "$src")"
+			# otherwise if it's a local link, use the destination
+			if ! echo "$linkDest" | grep -Piq '^https?://'
+			then
+				thumbSource="$gitRoot/$linkDest"
+			else
+				# error state; should fallback to our error thumbnail
+				thumbSource="$src"
+			fi
+		fi
+	# otherwise just thumbnail the file itself
 	else
 		thumbSource="$src"
 	fi
@@ -426,10 +442,18 @@ echo "$imgFilesAll" | while read -r src; do
 	target_dir="$(dirname -- "$target")"
 	mkdir -p "$target_dir"
 
+	# echo
+	# echo "thumbSource: $thumbSource"
+	# echo "thumbSourceExt: $thumbSourceExt"
+
 	if [[ -f "$thumbnail_old" ]]; then
 		mv "$thumbnail_old" "$target"
 		echo -en "\r"
 
+	# if the target somehow already exists, don't do anything
+	elif [[ -f "$target" ]]
+	then
+		:
 	# make a new, regular thumbnail
 	else
 		if [[ "$src" == *"/mobile/"* ]]; then
@@ -680,18 +704,40 @@ echo "$imgFilesAll" | while read -r src; do
 		if [[ "$srcExt" == "link" ]]
 		then
 			url="$(cat "$src")"
-			domain="$(echo "$url" | grep -iPo '^https?://[^/]+')"
-			faviconUrl="$domain/favicon.ico"
-			faviconPath="$cacheDir/$(echo "$domain" | perl -p -e 's|[:/\.]||g;' -e 's/^(https?|www)+//g;').ico"
 
-			if [[ ! -f "$faviconPath" ]]
+			# nab external favicons
+			if [[ "$url" == "http"* ]]
 			then
-				mkdir -p "$cacheDir"
-				curl -L "$faviconUrl" -o "$faviconPath"
+				domain="$(echo "$url" | grep -iPo '^https?://[^/]+')"
+				faviconUrl="$domain/favicon.ico"
+				faviconName="$(echo "$domain" | perl -p -e 's|[:/\.]||g;' -e 's/^(https?|www)+//g;').ico"
+				faviconCachePath="$cacheDir/$faviconName"
+				faviconDownloadPath="$TEMP/$faviconName"
+
+				if [[ ! -f "$faviconCachePath" ]]
+				then
+					mkdir -p "$cacheDir"
+					curl -L "$faviconUrl" -o "$faviconDownloadPath"
+				fi
+			# if the url does not start with http, assume this is a local link
+			else
+				faviconDownloadPath="$gitRoot/favicon.ico"
+				faviconName="${repoName}.ico"
+				faviconCachePath="$cacheDir/$faviconName"
 			fi
 
-			# slap the symbol on top of the thumbnail
-			convert "$target" -coalesce null: \( "$faviconPath" -trim +repage \) -gravity southeast -geometry "+4+4" +dither -layers composite "$target"
+			# shrink favicon if needed
+			if [[ -f "$faviconDownloadPath" && ! -f "$faviconCachePath" ]]
+			then
+				# shrink and copy
+				convert "$faviconDownloadPath" -thumbnail '16x16>' "$faviconCachePath"
+			fi
+
+			# slap the favicon on top of the thumbnail
+			if [[ -f "$faviconCachePath" ]]
+			then
+				convert "$target" -coalesce null: \( "$faviconCachePath" -trim +repage \) -gravity southeast -geometry "+4+4" +dither -layers composite "$target"
+			fi
 		fi
 
 		# clear temp file if present
@@ -704,6 +750,7 @@ echo "$imgFilesAll" | while read -r src; do
 
 		echo ""
 	fi
+
 done
 
 rm -rf "$thumbnails_old_dir"
@@ -858,6 +905,13 @@ while read -r dir; do
 			then
 				imageUrl="$(cat "$imgPath")"
 				imageUrl="${imageUrl// /%20}"
+
+				# slap a / on the front of local links to make them absolute to the project
+				if [[ "$imageUrl" != *http ]]
+				then
+					imageUrl="/$imageUrl"
+				fi
+
 				# imageUrlRawRoot="$raw_root$imageUrl"
 			# otherwise use the url of the file
 			else

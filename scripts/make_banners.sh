@@ -17,6 +17,19 @@ rootDirs="$(find "$gitRoot/.internals/thumbnails" -mindepth 1 -maxdepth 1 -type 
 # watch out for there being no working dirs tho
 # probably switch to looping thru seq 1 5 and indexing rootDirs instead
 
+find-images(){
+  output="$("$thisScriptDir/find-images" "$@" -not -iname '*.pdf')"
+  
+  if [[ -z "$output" ]]
+ then
+   echo "@: $@" >&2
+   find "$@" -type f -iname '*.link' >&2
+    output="$(find "$@" -type f -iname '*.link' -print0 | xargs -0 cat | perl -pe "s|^|$gitRoot|g")"
+  fi
+
+  echo "$output"
+}
+
 iDir=0
 echo "$rootDirs" | while read -r rootDir
 do
@@ -44,7 +57,14 @@ do
   echo "making $rootDirName banner image..."
 
   # do a rough calc to get the right amount of images
-  exampleImg="$("$thisScriptDir/find-images" "$rootDir" | head -n 1)"
+  exampleImg="$(find-images "$rootDir" | head -n 1)"
+
+  if [[ -z "$exampleImg"[0] ]]
+  then
+    echo "no images"
+    continue
+  fi
+
   imgWidth="$(identify -format '%w' "$exampleImg"[0])"
   imgLimit="$(echo "($targetWidth / ($imgWidth+25)) -2" | bc -l | cut -d '.' -f1)"
 
@@ -86,7 +106,7 @@ do
       break
     fi
 
-    imgPaths="$("$thisScriptDir/find-images" "$dir" -maxdepth 1 | shuf -n "$imgPerDir" | xargs -d '\n' -I{} echo '"'"{}[0]"'"')"
+    imgPaths="$(find-images "$dir" | shuf -n "$imgPerDir" | xargs -d '\n' -I{} echo '"'"{}[0]"'"')"
     if [[ -n "$imgPaths" ]]
     then
       echo "$imgPaths" >> "$tempImgPaths"

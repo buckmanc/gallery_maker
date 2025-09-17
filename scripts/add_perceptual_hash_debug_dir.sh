@@ -2,13 +2,11 @@
 
 set -e
 
-gitRoot="$(git rev-parse --show-toplevel)"
-thisScriptDir="$(dirname -- "$0")"
-phashDir="$gitRoot/debug/perceptual hash"
-
-find-images() {
-	"$thisScriptDir/find-images" "$@"
-}
+optAll=0
+optFaceless=0
+optFaces=0
+optStrict=0
+hashSize=8
 
 if (! type pyphash >/dev/null 2>&1 )
 then
@@ -16,7 +14,61 @@ then
   exit 1
 fi
 
-dirs="$(find "$gitRoot" -mindepth 1 -type d -links 2 -not -ipath '*/.internals/*' -not -ipath '*/.git/*' -not -ipath '*/gallery_maker/*' | sort)"
+for arg in "$@"
+do
+
+  arg="${arg#--}"
+  arg="${arg,,}"
+
+  if [[ "$arg" == "all" ]]
+  then
+    optAll=1
+    runType="$arg"
+  elif [[ "$arg" == "faceless" ]]
+  then
+    optFaceless=1
+    runType="$arg"
+    if [[ "$optStrict" == 0 ]]
+    then
+      hashSize=4
+    fi
+  elif [[ "$arg" == "face" || "$arg" == "faces" ]]
+  then
+    optFaces=1
+    runType="$arg"
+  elif [[ "$arg" == "strict" ]]
+  then
+    optStrict=1
+    hashSize=50
+  fi
+
+done
+
+if [[ -z "$runType" ]]
+then
+  echo "need to specify --all, --faceless, or --faces"
+  exit 1
+elif (! type facedetect >/dev/null 2>&1 ) && [[ "$optAll" == 0 ]]
+then
+  echo "facedetect not found"
+  echo "this script will only work in --all mode"
+  exit 1
+fi
+
+if [[ "$optStrict" == 1 ]]
+then
+  runType="${runType}_strict"
+fi
+
+gitRoot="$(git rev-parse --show-toplevel)"
+thisScriptDir="$(dirname -- "$0")"
+phashDir="$gitRoot/debug/perceptual hash/$runType"
+
+find-images() {
+  "$thisScriptDir/find-images" "$@"
+}
+
+dirs="$(find "$gitRoot" -mindepth 1 -type d -links 2 -not -ipath '*/.internals/*' -not -ipath '*/.git/*' -not -ipath '*/gallery_maker/*' -not -ipath '*/debug/*' | sort)"
 
 rm -rf "$phashDir"
 
@@ -40,9 +92,15 @@ do
     if [[ -z "$file" ]]
     then
       continue
+    elif [[ "$optFaceless" == 1 ]] && facedetect -q "$file" 2> /dev/null
+    then
+      continue
+    elif [[ "$optFaces" == 1 ]] && ! facedetect -q "$file" 2> /dev/null
+    then
+      continue
     fi
 
-    hashes+="$(pyphash "$file" 2> /dev/null || true)|$file"$'\n'
+    hashes+="$(pyphash --hash-size "$hashSize" "$file" 2> /dev/null || true)|$file"$'\n'
   done < <(echo "$files")
 
   hashesOnly="$(echo "$hashes" | cut -d '|' -f1)"
@@ -66,7 +124,7 @@ do
 
     matchingFiles="$(echo "$hashes" | grep -P "^$dupeHash" | cut -d '|' -f2)"
 
-    hashDir="$destDir/$dupeHash"
+    hashDir="$destDir/${dupeHash:0:8}"
     mkdir -p "$hashDir"
 
     while read -r matchingFile
