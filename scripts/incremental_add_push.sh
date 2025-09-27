@@ -59,12 +59,12 @@ commitCount=0
 
 # "add" deleted files first
 # to clear the road for checks for existent files
-git ls-files "$optDir" --deleted --exclude-standard -z | xargs -0 git rm
+git ls-files "$optDir" --deleted --exclude-standard -z | xargs --no-run-if-empty -0 git rm
 
 # get files ordered by size desc
 # specifically, only untracked and modified files in the provided dir
 # ...but the size ordering is only per batch without more considerations
-files="$(git ls-files "$optDir" --others --modified --exclude-standard -z | xargs -0 ls -S)"
+files="$(git ls-files "$optDir" --others --modified --exclude-standard -z | xargs --no-run-if-empty -0 ls -S)"
 
 while read -r file
 do
