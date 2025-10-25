@@ -210,7 +210,7 @@ lfsFiles="$(git -C "$gitRoot" lfs ls-files --name-only | xargs --no-run-if-empty
 fitDir="$gitRoot/.internals/wallpapers_to_fit"
 if [[ -d "$fitDir" ]]
 then
-	imagesToFit="$(find-images "$fitDir")"
+	imagesToFit="$(find-images-including-thumbnails "$fitDir")"
 fi
 
 i=0
