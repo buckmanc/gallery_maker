@@ -7,7 +7,14 @@ thisScriptDir="$(dirname -- "$0")"
 
 bannerDir="$gitRoot/.internals/banners"
 tempImgPaths='/tmp/wallpaper-banner-temp.txt'
+favDirsPath="$gitRoot/.internals/favdirs.txt"
 targetWidth=3000
+
+favDirs=''
+if [[ -f "$favDirsPath" ]]
+then
+  favDirs="$(cat "$favDirsPath")"
+fi
 
 mkdir -p "$bannerDir"
 
@@ -73,8 +80,17 @@ do
   then
     imgLimit=10
   fi
+  
+  # "-links 2" limits to only leaf dirs
+  # which reduces category dupes
+  dirs="$(find "$rootDir" -mindepth 1 -type d -links 2| shuf)"
 
-  dirs="$(find "$rootDir" -mindepth 1 -type d | shuf)"
+  favDirs="$(echo "$dirs" | grep -if <(echo "$favDirs"))"
+  dirs="$(echo "$dirs" | grep -vif <(echo "$favDirs"))"
+
+  # sort fav dirs to the top
+  dirs="$(echo "$favDirs"$'\n'"$dirs" | grep -Piv '^$')"
+
   dirCount="$(echo "$dirs" | wc -l)"
   i=0
   imgPerDir=1
@@ -96,7 +112,7 @@ do
   do
     ((i++)) || true
 
-    # echo "dir: $dir"
+    echo "dir: $dir"
 
     if [[ -z "$dir" ]]
     then
