@@ -83,13 +83,19 @@ do
   
   # "-links 2" limits to only leaf dirs
   # which reduces category dupes
-  dirs="$(find "$rootDir" -mindepth 1 -type d -links 2| shuf)"
+  dirs="$(find "$rootDir" -mindepth 1 -type d -links 2 | shuf)"
 
-  favDirs="$(echo "$dirs" | grep -if <(echo "$favDirs"))"
-  dirs="$(echo "$dirs" | grep -vif <(echo "$favDirs"))"
+  favDirs="$(echo "$dirs" | grep -if <(echo "$favDirs") || true)"
+  dirs="$(echo "$dirs" | grep -vif <(echo "$favDirs") || true)"
+
+  # echo "$LINENO"
+  # echo "favDirs: $(echo "$favDirs" | wc -l)"
+  # echo "favDirs:$favDirs"
+  # echo "dirs: $(echo "$dirs" | wc -l)"
+  # echo "dirs: $dirs"
 
   # sort fav dirs to the top
-  dirs="$(echo "$favDirs"$'\n'"$dirs" | grep -Piv '^$')"
+  dirs="$(echo "$favDirs"$'\n'"$dirs" | grep -Piv '^$' || true)"
 
   dirCount="$(echo "$dirs" | wc -l)"
   i=0
@@ -112,8 +118,6 @@ do
   do
     ((i++)) || true
 
-    echo "dir: $dir"
-
     if [[ -z "$dir" ]]
     then
       continue
@@ -121,6 +125,8 @@ do
     then
       break
     fi
+
+    echo "dir: $dir"
 
     imgPaths="$(find-images "$dir" | shuf -n "$imgPerDir" | xargs -d '\n' -I{} echo '"'"{}[0]"'"')"
     if [[ -n "$imgPaths" ]]
