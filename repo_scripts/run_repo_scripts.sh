@@ -17,6 +17,8 @@ shortRemoteName="$(git remote -v | grep -iP 'origin' | grep -iPo '[^/:]+/[^/]+(?
 repoUrl="$(git remote get-url --all origin | head -n 1)"
 repoName="${shortRemoteName#*/}"
 tempRepoDir="$tempDir/$repoName"
+galleryMakerUrl="https://github.com/buckmanc/gallery_maker"
+tempGalleryMakerDir="$tempDir/gallery_maker"
 
 if [[ -z "$repoUrl" ]]
 then
@@ -29,7 +31,7 @@ mkdir -p "$tempDir"
 
 if [[ ! -d "$tempRepoDir" ]]
 then
-  git -C "$tempDir" clone --recurse-submodules "$repoUrl" "$tempRepoDir"
+  git -C "$tempDir" clone "$repoUrl" "$tempRepoDir"
 fi
 
 cd "$tempRepoDir"
@@ -41,14 +43,14 @@ git checkout .
 git clean -f .
 git remote prune origin
 
-if [[ ! -d "$tempRepoDir/gallery_maker" ]]
+if [[ ! -d "$tempGalleryMakerDir" ]]
 then
-  echo "gallery maker not present in remote repo"
-  exit 1
+  git -C "$tempDir" clone "$galleryMakerUrl" "$tempGalleryMakerDir"
 fi
 
-git -C "$tempRepoDir/gallery_maker" checkout .
-git -C "$tempRepoDir/gallery_maker" pull origin main
+git -C "$tempGalleryMakerDir" checkout .
+git -C "$tempGalleryMakerDir" clean -f
+git -C "$tempGalleryMakerDir" pull origin main
 
-"$tempRepoDir/gallery_maker/repo_scripts/update_update_mod_time.sh" --commit
-"$tempRepoDir/gallery_maker/repo_scripts/update_cloudflare_branch.sh"
+"$tempGalleryMakerDir/repo_scripts/update_update_mod_time.sh" --commit
+"$tempGalleryMakerDir/repo_scripts/update_cloudflare_branch.sh"

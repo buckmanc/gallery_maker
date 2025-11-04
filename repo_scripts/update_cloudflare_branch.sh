@@ -9,6 +9,7 @@ gitRoot="$(git rev-parse --show-toplevel)"
 thisScriptDir="$(dirname -- "$0")"
 shortRemoteName="$(git remote -v | grep -iP '(github|origin)' | grep -iPo '[^/:]+/[^/]+(?= )' | perl -pe 's/\.git$//g' | head -n1)"
 raw_root="https://raw.githubusercontent.com/$shortRemoteName/main"
+galleryMakerSubModulePath="$gitRoot/gallery_maker"
 
 # the goal here is to stay within the cloudflare filesize and file amount limits
 # (25MB and 20k files)
@@ -56,6 +57,12 @@ then
       done < <( echo "$cleanFilePaths" )
 
   git commit -m "auto resolve merge conflict"
+fi
+
+# burn gallery maker submodule
+if [[ -d "$galleryMakerSubModulePath" ]]
+then
+  git rm "$galleryMakerSubModulePath" || rm "$galleryMakerSubModulePath"
 fi
 
 # delete all images and video from main directory
