@@ -789,7 +789,7 @@ while read -r dir; do
 	# thumbDir="$gitRoot/.internals/thumbnails/$friendlyDirName"
 
 	dirReadmePath="$dir/README.MD"
-	dirHtmlReadmePath="$dir/README.html"
+	dirHtmlReadmePath="$dir/index.html"
 	# don't overwrite the real root readme
 	if [[ "$dirReadmePath" == "$homeReadmePath" ]]
 	then
@@ -1100,9 +1100,6 @@ if [[ "$mdTextOld" != "$readmeTemplate" ]]
 	echo "$readmeTemplate" > "$homeReadmePath"
 fi
 
-homeReadmeHtmlPath="${gitRoot}/README.html"
-indexHtmlPath="${gitRoot}/index.html"
-
 # if pandoc is installed, convert the markdown files to html for easy preview and debugging
 if [[ "$hasPandoc" == 1 ]]
 then
@@ -1121,6 +1118,8 @@ then
 		printf '\033[2K%4d/%d: %s...' "$i" "$total" "$descname" | cut -c "-$COLUMNS" | tr -d $'\n'
 
 		htmlPath="${src%.*}.html"
+		htmlPath="${htmlPath//README.html/index.html}"
+		htmlPath="${htmlPath//readme.html/index.html}"
 		# skip if the underlying md hasn't changed since last html generation
 		if [[ "$htmlPath" -nt "$src" ]]
 		then
@@ -1165,6 +1164,8 @@ then
 			pandoc --from=markdown --to=html --standalone --css="$cssPath" --metadata title="$metaTitle" +RTS -M10G -RTS "$src"
 	)"
 
+		htmlText="${htmlText//readme.md/}"
+		htmlText="${htmlText//README.MD/}"
 		htmlText="${htmlText//.md/.html}"
 		htmlText="${htmlText//.MD/.html}"
 		htmlText="${htmlText//"$raw_root"/}"
@@ -1185,13 +1186,6 @@ then
 		echo
 		echo "skipped $iHtmlSkip/$total html files"
 	fi
-
-	# update an index file matching readme.html
-	if [[ -f "$homeReadmeHtmlPath" ]] && [[ "$homeReadmeHtmlPath" -nt "$indexHtmlPath" || ! -f "$indexHtmlPath" ]]
-	then
-		cp "$homeReadmeHtmlPath" "$indexHtmlPath"
-	fi
-
 fi
 
 # TODO exclude files already added
