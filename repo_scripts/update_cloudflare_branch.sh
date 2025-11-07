@@ -36,33 +36,40 @@ if [[ "$conflictedFileCount" -gt 0 ]]
 then
   echo "fixing merge conflict..."
 
+  # burn gallery maker submodule
+  if [[ -d "$galleryMakerSubModulePath" ]]
+  then
+    git rm -f "$galleryMakerSubModulePath" || rm -rf "$galleryMakerSubModulePath"
+  fi
+
   # get files delineated by \0 so that special characters are not exploded
   # then replace by new line coz that has native support
   cleanFilePaths="$(git ls-files --unmerged --format='%(path)' -z | perl -p -e 's/\0/\n/g' | sort -u)"
+  
   # burn any merge conflicts that make it through
   while read -r path
   do
-	ext="${path##*.}"
-	ext="${ext,,}"
+    ext="${path##*.}"
+    ext="${ext,,}"
 
-	# if it's a known gallery content type, burn it
-	if [[ "$ext" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob|jpe?g|png|gif|link)$ ]]
-	then
-	  git rm "$path"
-	# otherwise add it and let it (possibly) fall subject to below alterations
-	else
-	  git add "$path"
-	fi
+    # if it's a known gallery content type, burn it
+    if [[ "$ext" =~ ^(3gp|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob|jpe?g|png|gif|link)$ ]]
+    then
+      git rm "$path"
+    # otherwise add it and let it (possibly) fall subject to below alterations
+    else
+      git add "$path"
+    fi
 
-      done < <( echo "$cleanFilePaths" )
-
+  done < <( echo "$cleanFilePaths" )
+      
   git commit -m "auto resolve merge conflict"
 fi
 
 # burn gallery maker submodule
 if [[ -d "$galleryMakerSubModulePath" ]]
 then
-  git rm "$galleryMakerSubModulePath" || rm "$galleryMakerSubModulePath"
+  git rm -f "$galleryMakerSubModulePath" || rm -rf "$galleryMakerSubModulePath"
 fi
 
 # delete all images and video from main directory
