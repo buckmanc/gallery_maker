@@ -80,7 +80,7 @@ find "$gitRoot" -type f -iname '*.md' -not -ipath '*/.*' | xargs --no-run-if-emp
 find "$gitRoot" -type f -size +25M -not -ipath '*/.*' | xargs --no-run-if-empty -d '\n' git rm --ignore-unmatch
 
 # repoint all links (not embedded images) to the raw github url
-git ls-files | grep -iP '\.html$' | xargs --no-run-if-empty -d '\n' perl -i -pe 's@href="\/(?!("|\.|.*?readme\.html|.*?README\.html))@href="'"$raw_root"'/@g'
+git ls-files | grep -iP '\.html$' | xargs --no-run-if-empty -d '\n' perl -i -pe 's@href="/(?!("|\.|.*?/"))@href="'"$raw_root"'/@g'
 git ls-files | grep -iP '\.html$' | xargs --no-run-if-empty -d '\n' git add
 
 gitStat="$(git status --porcelain --ignore-submodules)"
