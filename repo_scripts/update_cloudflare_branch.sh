@@ -49,6 +49,12 @@ then
   # burn any merge conflicts that make it through
   while read -r path
   do
+
+    if [[ -z "$path" ]]
+    then
+      continue
+    fi
+
     ext="${path##*.}"
     ext="${ext,,}"
 
