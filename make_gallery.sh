@@ -290,7 +290,8 @@ done
 echo -e "\r"
 
 # if perceptual hashing is available, append the hash to the start of the file for applicable categories
-if type pyphash >/dev/null 2>&1
+# TODO figure out a better way than hardcoding a repo name
+if type pyphash >/dev/null 2>&1 && [[ "${repoName,,}" != "photos" ]]
 then
 	echo -n "--checking for missing perceptual hash sort data..."
 	imgFiles="$(find-images-main)"
@@ -851,7 +852,7 @@ while read -r dir; do
 		fi
 		customHeaderID="$(echo "${subDirName}" | perl -pe "$subDirIdRegex")"
 		imgFolderPathReggie="$(quoteRe "${subDir}/")"
-		folderToc="- [$subDirName](#$customHeaderID) - $(echo "$imgFiles" | grep -iPc "$imgFolderPathReggie" | numfmt --grouping)"
+		folderToc="- [$subDirName](#$customHeaderID) - $(echo "$imgFiles" | sort -u | grep -iPc "$imgFolderPathReggie" | numfmt --grouping)"
 		if [[ "$folderToc" != *" - 0" ]]
 		then
 			mdText+="$folderToc"$'\n'
@@ -1028,22 +1029,56 @@ echo "--updating root readme..."
 # build the root table of contents
 pathRootEscaped="$(quoteRe "$gitRoot/")"
 rootDirs="$(echo "$imgFilesAll" | sed "s/^$pathRootEscaped//g" | grep -iPo '^[^/]+' | "$thisScriptDir/scripts/custom-file-sort.sh")"
-yearDirCount="$(echo "$rootDirs" | grep -iP '(^(19|20)\d\d|(19|20)\d\d$)' | wc -l)"
 
 echo "$rootDirs" | while read -r rootDir
 do
 	rootDirEscaped="$(echo "$rootDir" | perl -pe 's/ /%20/g')"
-	echo "- [$rootDir](/$rootDirEscaped/README.MD) - $(find-images "$gitRoot/$rootDir" | wc -l | numfmt --grouping)" >> "$tocMD"
+	echo "- [$rootDir](/$rootDirEscaped/README.MD) - $(find-images "$gitRoot/$rootDir" | grep -Piv '^\s*$' | sort -u | wc -l | numfmt --grouping)" >> "$tocMD"
 	# echo $'\n' >> "$tocMD"
 done
 
-# unless there are several year directories at the root, sort by number of images
-# otherwise leave the default alphabetical sort
-if [[ "$yearDirCount" -lt 3 ]]
+yearTocLines="$(grep -iP '/(19|20)\d\d' "$tocMD" || true)"
+
+linkTocLines="$(grep -iP '/(video|pdf)/' "$tocMD" || true)"
+
+otherTocLines="$(grep -Fiv -f <(echo "$yearTocLines") "$tocMD" | grep -Fiv -f <(echo "$linkTocLines") || true)"
+
+# won't be accurate with zero but we're not testing for that so nbd
+yearDirCount="$(echo "$yearTocLines" | wc -l)"
+
+# if there are 3 or more year dirs or there are link dirs
+# then create a table of contents with broken out sub categories
+# keeping the default sort within categories
+if [[ "$yearDirCount" -ge 3 || -n "$linkTocLines" ]]
 then
-	tocText="$(cat "$tocMD" | sort -rn -t '-' -k3)"
+	tocText=''
+
+	if [[ -n "$yearTocLines" ]]
+	then
+		tocText+="## Chronological"$'\n'
+		tocText+=$'\n'
+		tocText+="$yearTocLines"$'\n'
+		tocText+=$'\n'
+	fi
+
+	if [[ -n "$otherTocLines" ]]
+	then
+		tocText+="## Other"$'\n'
+		tocText+=$'\n'
+		tocText+="$otherTocLines"$'\n'
+		tocText+=$'\n'
+	fi
+
+	if [[ -n "$linkTocLines" ]]
+	then
+		tocText+="## Links"$'\n'
+		tocText+=$'\n'
+		tocText+="$linkTocLines"$'\n'
+		tocText+=$'\n'
+	fi
+# otherwise, sort by file count
 else
-	tocText="$(cat "$tocMD")"
+	tocText="$(cat "$tocMD" | sort -rn -t '-' -k3)"
 fi
 
 rm "$tocMD"
