@@ -27,6 +27,12 @@ fi
 thisScriptDir="$(dirname -- "$0")"
 branchName="$(git branch --show-current)"
 shortRemoteName="$(git remote -v | grep -iP '(github|origin)' | grep -iPo '[^/:]+/[^/]+(?= )' | perl -pe 's/\.git$//g' | head -n1)"
+
+if [[ -z "$shortRemoteName" ]]
+then
+	shortRemoteName="$(basename "$gitRoot")"
+fi
+
 raw_root="https://raw.githubusercontent.com/$shortRemoteName/main"
 repoUrl="https://github.com/$shortRemoteName"
 repoName="${shortRemoteName#*/}"
@@ -1177,7 +1183,7 @@ then
 
 		if [[ "${mdDir,,}" = "${gitRoot,,}" ]]
 		then
-			metaTitle="${repoName^}"
+			metaTitle="${repoNameCap}"
 			cssPath="$cssPathBigImages"
 		# elif [[ "$bottomLevelDir" == 1 ]]
 		# then
