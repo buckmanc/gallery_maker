@@ -314,7 +314,11 @@ then
 		shortPath="${path/#"$gitRoot"/}"
 		# only use perceptual hash filenames for specific folders
 		# only misc folders at one level deep
-		if echo "$shortPath" | grep -qiP "(/forests/|/space/|/space - fictional/|^/?[^/]+/misc/|/leaves/|/cityscapes/)" && ! echo "$filename" | grep -qiP '^[a-f0-9]{16}_' && ! echo "$shortPath" | grep -qiP '(screenshots)'
+		if \
+			echo "$shortPath" | grep -qiP "(/forests/|/space/|/space - fictional/|^/?[^/]+/misc/|/leaves/|/cityscapes/)" && \
+			! echo "$filename" | grep -qiP '^[a-f0-9]{16}_' && \
+			! echo "$shortPath" | grep -qiP '(screenshots)' && \
+			! echo "$shortPath" | grep -qiP '\.(mp4|avi|wmp)$'
 		then
 			echo -n "moving $shortPath..."
 			newPath="$(dirname -- "$path")/$(pyphash "$path")_$filename"
