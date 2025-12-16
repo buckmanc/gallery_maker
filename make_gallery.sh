@@ -402,7 +402,7 @@ imgFilesAll="$(find-images-main)"
 # to assure that the destination thumbnail already exists
 
 i=0
-totalImages=$(echo -n "$imgFilesAll" | wc -l)
+totalImages=$(echo -n "$imgFilesAll" | grep -Piv '\.link$' | wc -l)
 
 echo "$imgFilesAll" | while read -r src; do
 
@@ -508,10 +508,17 @@ echo "$imgFilesAll" | while read -r src; do
 		then
 			start=0
 			fin=0
-			ffJson="$(ffprobe -i "$thumbSource" -loglevel error -show_entries format=duration -show_entries stream=width,height -of json)"
-			seconds="$(echo "$ffJson" | jq -r '.format.duration' | perl -pe 's/\..+?$//g')"
-			ffWidth="$(echo "$ffJson" | jq -r '.streams[0].width')"
-			ffHeight="$(echo "$ffJson" | jq -r '.streams[0].height')"
+			ffJson="$(ffprobe -i "$thumbSource" -loglevel error -show_entries format=duration -show_entries stream=width,height -of json || true)"
+			if [[ -n "$ffJson" ]]
+			then
+				seconds="$(echo "$ffJson" | jq -r '.format.duration' | perl -pe 's/\..+?$//g')"
+				ffWidth="$(echo "$ffJson" | jq -r '.streams[0].width')"
+				ffHeight="$(echo "$ffJson" | jq -r '.streams[0].height')"
+			else
+				seconds=0
+				ffWidth=0
+				ffHeight=0
+			fi
 
 			timestamp="$(printf '%02d:%02d:%02d' $((seconds/3600)) $((seconds%3600/60)) $((seconds%60)))"
 

@@ -14,9 +14,14 @@ else
   shift
 fi
 
-# stackoverflow.com/a/60559975/1995812
-find "$dirPath" "$@" -xtype f |
-file -L --mime-type -f - |
-grep -P '(video)\/' |
-grep -iPo '^.*(?=:[^:]+$)' |
-sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7
+# # stackoverflow.com/a/60559975/1995812
+# find "$dirPath" "$@" -xtype f |
+# file -L --mime-type -f - |
+# grep -P '(video)\/' |
+# grep -iPo '^.*(?=:[^:]+$)' |
+# sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7
+
+# it's infinitely faster to just check the file extension instead of the mimetype
+find "$dirPath" "$@" -xtype f \
+  -regextype posix-extended -iregex '.+\.(3gp|3g2|avi|mp4|m4v|mpg|mov|wmv|webm|mkv|vob)$' \
+  | sort -t'/' -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7
