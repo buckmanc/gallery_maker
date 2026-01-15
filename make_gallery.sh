@@ -1284,5 +1284,7 @@ fi
 # echo "$largeFiles" > largeFiles.log
 # echo "$tooLargeFiles" > tooLargeFiles.log
 
+"$thisScriptDir/scripts/generate_sitemap.sh"
+
 echo
 echo "done at $(date)"
