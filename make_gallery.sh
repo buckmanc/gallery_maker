@@ -925,7 +925,7 @@ while read -r dir; do
 				imageUrl="${imageUrl// /%20}"
 
 				# slap a / on the front of local links to make them absolute to the project
-				if [[ "$imageUrl" != *http ]]
+				if [[ "$imageUrl" != http* ]]
 				then
 					imageUrl="/$imageUrl"
 				fi
